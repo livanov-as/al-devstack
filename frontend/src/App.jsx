@@ -1,120 +1,85 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from 'react'
+import { LearningTracker } from './components/LearningTracker'
+import { CertCard } from './components/CertCard'
+
+const content = {
+  en: { 
+    title: "AL DevStack", 
+    hero: "Learning Dashboard",
+    track: "Live Progress", 
+    certs: "Milestones", 
+    langBtn: "RU",
+    courses: [
+      { name: "JS Algorithms", progress: 85, color: "bg-yellow-500" },
+      { name: "Frontend Libraries", progress: 40, color: "bg-blue-500" }
+    ]
+  },
+  ru: { 
+    title: "AL DevStack", 
+    hero: "Панель обучения",
+    track: "Прогресс в реальном времени", 
+    certs: "Достижения", 
+    langBtn: "EN",
+    courses: [
+      { name: "Алгоритмы JS", progress: 85, color: "bg-yellow-500" },
+      { name: "Библиотеки Frontend", progress: 40, color: "bg-blue-500" }
+    ]
+  }
+}
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [isEn, setIsEn] = useState(true)
+  const [isDark, setIsDark] = useState(true)
+  const t = isEn ? content.en : content.ru
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+  }, [isDark])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="min-h-screen transition-colors duration-500 selection:bg-blue-500/30">
+      <header className="max-w-5xl mx-auto px-6 py-10 flex justify-between items-center">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+          <h1 className="text-2xl font-black text-blue-500 tracking-tighter">
+            {t.title} <span className="text-slate-600 text-xs font-normal">v0.1.0</span>
+          </h1>
+          <p className="text-slate-500 text-sm font-medium">{t.hero}</p>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        
+        <div className="flex items-center gap-4 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
+          <button onClick={() => setIsDark(!isDark)} className="p-2 hover:bg-slate-800 rounded-xl transition text-lg">
+            {isDark ? '🌙' : '☀️'}
+          </button>
+          <div className="w-[1px] h-6 bg-slate-800"></div>
+          <button onClick={() => setIsEn(!isEn)} className="px-4 py-2 hover:bg-slate-800 rounded-xl transition text-xs font-bold text-slate-300">
+            {t.langBtn}
+          </button>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <main className="max-w-5xl mx-auto px-6 grid lg:grid-cols-12 gap-8">
+        {/* Левая колонка: Трекер */}
+        <section className="lg:col-span-7 space-y-6">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-3">
+            <span className="w-8 h-[1px] bg-slate-800"></span> {t.track}
+          </h2>
+          <div className="grid gap-4">
+            {t.courses.map(c => <LearningTracker key={c.name} title={c.name} progress={c.progress} color={c.color} />)}
+          </div>
+        </section>
+
+        {/* Правая колонка: Сертификаты */}
+        <section className="lg:col-span-5 space-y-6">
+          <h2 className="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-3">
+            <span className="w-8 h-[1px] bg-slate-800"></span> {t.certs}
+          </h2>
+          <div className="space-y-3">
+            <CertCard name="Responsive Web Design" date="OCT 2023" isRu={!isEn} />
+            <CertCard name="Scientific Computing Python" date="DEC 2023" isRu={!isEn} />
+          </div>
+        </section>
+      </main>
+    </div>
   )
 }
 
