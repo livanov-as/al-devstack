@@ -1,17 +1,38 @@
 @import "tailwindcss";
 
+@theme {
+  /* Кастомные шрифты и переменные */
+  --font-sans: "Inter", ui-sans-serif, system-ui;
+  
+  /* Определяем семантические цвета */
+  --color-main-bg: var(--bg-primary);
+  --color-main-text: var(--text-primary);
+  --color-accent: var(--color-blue-500);
+}
+
+/* Настройка системных переменных для Light/Dark тем */
 :root {
-  --bg-primary: #020617; /* Slate 950 */
-  --text-primary: #f8fafc;
+  --bg-primary: #020617; /* slate-950 */
+  --text-primary: #f8fafc; /* slate-50 */
 }
 
 [data-theme='light'] {
   --bg-primary: #ffffff;
-  --text-primary: #0f172a;
+  --text-primary: #0f172a; /* slate-900 */
 }
 
+/* Вместо @apply используем стандартные CSS свойства с переменными темы */
 @layer base {
+  *, ::after, ::before {
+    border-color: var(--color-slate-800);
+  }
+
   body {
-    @apply bg-[var(--bg-primary)] text-[var(--color-text-primary)];
+    background-color: var(--main-bg);
+    color: var(--main-text);
+    font-family: var(--font-sans);
+    transition-property: background-color, color, border-color;
+    transition-duration: 300ms;
+    -webkit-font-smoothing: antialiased;
   }
 }
