@@ -1,34 +1,31 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
-  /* Переменные для использования в классах типа text-(--text-primary) */
-  --color-brand: var(--color-blue-500);
+  /* Увеличиваем базовый шрифт до 1.125rem (18px) */
+  --font-size-base: 1.125rem;
+  --line-height-base: 1.75rem;
+
+  /* Делаем акцентный синий чуть мягче для темной темы */
+  --color-brand: var(--color-blue-400);
 }
 
-/* Настройки темы в чистом CSS */
 :root {
-  --bg-primary: #020617; /* Slate 950 */
-  --text-primary: #f8fafc; /* Slate 50 */
-  --border-color: #1e293b; /* Slate 800 */
+  --bg-primary: #020617;
+  --text-primary: #f1f5f9;
 }
 
 [data-theme='light'] {
-  --bg-primary: #ffffff;
-  --text-primary: #0f172a; /* Slate 900 */
-  --border-color: #e2e8f0; /* Slate 200 */
+  --bg-primary: #f8fafc;
+  --text-primary: #0f172a;
 }
 
 @layer base {
   body {
-    /* Привязываем переменные к телу страницы */
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    transition: background-color 0.3s ease, color 0.3s ease;
-    font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-  }
-
-  /* Глобальный стиль для бордеров, чтобы они тоже менялись */
-  div, section, nav, header, form {
-    border-color: var(--border-color);
+    transition: all 0.3s ease-in-out;
+    /* Улучшаем читаемость шрифта */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }

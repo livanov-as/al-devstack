@@ -17,19 +17,29 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen">
-        <nav className="max-w-5xl mx-auto p-6 flex gap-6 border-b">
-          <Link to="/" className="hover:text-blue-500 transition font-black text-xs tracking-widest">DASHBOARD</Link>
-          <Link to="/certs" className="hover:text-blue-500 transition font-black text-xs tracking-widest">CERTIFICATES</Link>
-          
-          <button 
-            onClick={() => setIsDark(!isDark)} 
-            className="ml-auto p-2 rounded-xl bg-slate-900/50 border hover:border-blue-500/50 transition cursor-pointer"
+        <nav className="mx-auto flex max-w-5xl gap-6 border-b p-6">
+          <Link
+            to="/"
+            className="text-xs font-black tracking-widest transition hover:text-blue-500"
+          >
+            DASHBOARD
+          </Link>
+          <Link
+            to="/certs"
+            className="text-xs font-black tracking-widest transition hover:text-blue-500"
+          >
+            CERTIFICATES
+          </Link>
+
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="ml-auto cursor-pointer rounded-xl border bg-slate-900/50 p-2 transition hover:border-blue-500/50"
           >
             {isDark ? '🌙' : '☀️'}
           </button>
         </nav>
 
-        <main className="max-w-5xl mx-auto p-6">
+        <main className="mx-auto max-w-5xl p-6">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/certs" element={<Certificates />} />
