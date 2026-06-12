@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.1",
+    "@vnedyalk0v/react19-simple-maps": "^2.0.9",
+    "d3-scale": "^4.0.2",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
@@ -29,5 +31,10 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "vite": "^8.0.0"
+  },
+  "overrides": {
+    "@tailwindcss/vite": {
+      "vite": "^8.0.0"
+    }
   }
 }
