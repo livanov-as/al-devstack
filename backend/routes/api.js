@@ -5,122 +5,69 @@ import { GEO_MAPPING, GLOBAL_TRIGGER_SLUG } from "../config/constants.js";
 
 const router = express.Router();
 
-// 1. GET /api/health — Redundant lightweight route (for structure/sanity check)
-router.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date() });
-});
-
-// 2. GET /api/progress/geo-stats — GIS map percentage aggregation route handling legacy fCC task migration
-router.get("/progress/geo-stats", async (req, res) => {
+/**
+ * GET /api/progress/geo-stats
+ * Aggregates freeCodeCamp v9 progress statistics mapped by geographical regions.
+ */
+router.get('/progress/geo-stats', async (req, res) => {
   try {
-    const hasGlobalCert = await Certificate.findOne({
-      slug: GLOBAL_TRIGGER_SLUG,
-    });
-    const userCerts = await Certificate.find();
-    const certSlugsList = userCerts.map((c) => c.slug);
+    const progressList = await Progress.find({}).lean();
+    const certsList = await Certificate.find({}).lean();
 
-    const geoStats = {};
+    const earnedCertSlugs = new Set(certsList.map(c => c.slug));
+    const hasGlobalFullStack = earnedCertSlugs.has(GLOBAL_TRIGGER_SLUG);
+
+    const stats = {};
 
     for (const [key, config] of Object.entries(GEO_MAPPING)) {
-      // 1. Global trigger condition (Full-Stack Developer)
-      if (hasGlobalCert) {
-        geoStats[key] = {
-          name: config.name,
-          progress: 100,
-          lessonsProgress: 85,
-          certBonus: 15,
-          completedLessons: config.maxLessons,
-          maxLessons: config.maxLessons,
-          isFullyMastered: true,
-        };
-        continue;
+      const completedTasksCount = progressList.filter(item => 
+        config.matchRegex.test(item.category || '')
+      ).length;
+
+      const hasRegionCertificate = config.certSlugs.some(slug => earnedCertSlugs.has(slug));
+
+      let percentage = 0;
+      if (hasRegionCertificate) {
+        percentage = 100;
+      } else if (config.maxLessons > 0) {
+        percentage = Math.min(
+          100, 
+          Math.round((completedTasksCount / config.maxLessons) * 100)
+        );
       }
 
-      // 2. Smart calculation accounting for legacy fCC task migration (Killer feature!)
-      // Verify if ALL required certificates for the current region are earned
-      const hasAllRegionCerts = config.certSlugs.every((slug) =>
-        certSlugsList.includes(slug),
-      );
-
-      let completedLessons = 0;
-
-      if (hasAllRegionCerts) {
-        // If official regional certificates exist in the DB, the course is completed!
-        // Force the maximum value, overriding missing tasks caused by fCC migration
-        completedLessons = config.maxLessons;
-      } else {
-        // If certificates are missing yet (e.g., Eurasia or Africa) — perform a raw DB count
-        completedLessons = await Progress.countDocuments({
-          category: { $regex: config.matchRegex },
-        });
-      }
-
-      // Percentage calculation based on our formula weights (85% lessons + 15% cert)
-      const rawLessonsPercent = (completedLessons / config.maxLessons) * 100;
-      const lessonsProgress = Math.min(rawLessonsPercent * 0.85, 85);
-
-      // Check for at least one certificate to apply the partial milestone bonus (+15%)
-      const hasAnyRegionCert = config.certSlugs.some((slug) =>
-        certSlugsList.includes(slug),
-      );
-      const certBonus = hasAnyRegionCert ? 15 : 0;
-
-      const totalProgress = Math.round(lessonsProgress + certBonus);
-
-      geoStats[key] = {
+      stats[key] = {
+        id: config.id,
         name: config.name,
-        progress: Math.min(totalProgress, 100),
-        lessonsProgress: Math.round(lessonsProgress),
-        certBonus: certBonus,
-        completedLessons: completedLessons,
-        maxLessons: config.maxLessons,
-        isFullyMastered: totalProgress >= 100,
+        completed: completedTasksCount,
+        total: config.maxLessons,
+        percentage: percentage,
+        hasCertificate: hasRegionCertificate
       };
     }
 
     res.json({
-      success: true,
-      globalTriggerActive: !!hasGlobalCert,
-      stats: geoStats,
+      regions: stats,
+      globalFullStack: hasGlobalFullStack
     });
+
   } catch (error) {
-    console.error("❌ GIS aggregation error:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error during geo aggregation" });
+    console.error('GIS aggregation error:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
-// 3. GET /api/progress?page=1&limit=50 — Paginated live feed of recent completed tasks
-router.get("/progress", async (req, res) => {
+/**
+ * GET /api/certificates
+ * Retrieves the list of earned certificates for the CertificatesGrid widget.
+ */
+router.get('/certificates', async (req, res) => {
   try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 50;
-    const skip = (page - 1) * limit;
-
-    // Fetch tasks, sorting from newest to oldest
-    const tasks = await Progress.find()
-      .sort({ date: -1 }) // Sorting by the date field from fCC v9
-      .skip(skip)
-      .limit(limit);
-
-    // Count total documents for correct pagination math
-    const totalTasks = await Progress.countDocuments();
-
-    res.json({
-      success: true,
-      tasks,
-      pagination: {
-        currentPage: page,
-        totalPages: Math.ceil(totalTasks / limit),
-        totalTasks: totalTasks,
-      },
-    });
+    const certsList = await Certificate.find({}).sort({ createdAt: -1 }).lean();
+    res.json(certsList);
   } catch (error) {
-    console.error("❌ Task stream fetching error:", error);
-    res
-      .status(500)
-      .json({ error: "Internal server error during progress stream fetching" });
+    console.error('Error fetching certificates:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 

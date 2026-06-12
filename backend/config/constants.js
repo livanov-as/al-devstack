@@ -1,42 +1,56 @@
 export const GEO_MAPPING = {
-  // NORTH AMERICA: JavaScript v9
-  north_america: {
-    id: "north_america",
-    name: "North America",
-    matchRegex: /javascript/i,
-    maxLessons: 1312,
+  // 1. EUROPE: Responsive Web Design (1552 lessons)
+  europe: {
+    id: "europe",
+    name: "Europe",
+    matchRegex: /responsive-web-design-v9|css|html|styling|pseudo/i,
+    maxLessons: 1552,
+    certSlugs: ["responsive-web-design-v9"],
+  },
+
+  // 2. ASIA: JavaScript Certification (1318 lessons)
+  asia: {
+    id: "asia",
+    name: "Asia",
+    matchRegex: /javascript-v9/i,
+    maxLessons: 1318,
     certSlugs: ["javascript-v9"],
   },
 
-  // SOUTH AMERICA: HTML (302) + CSS (1234) + Libraries (541) = 2077 steps
-  south_america: {
-    id: "south_america",
-    name: "South America",
-    matchRegex:
-      /responsive-web-design-v9|front-end-development-libraries-v9|css|html|styling|pseudo/i,
-    maxLessons: 2077,
-    certSlugs: [
-      "responsive-web-design-v9",
-      "front-end-development-libraries-v9",
-    ],
-  },
-
-  // EURASIA: Python Fundamentals v9
-  eurasia: {
-    id: "eurasia",
-    name: "Eurasia",
-    matchRegex: /python/i,
-    maxLessons: 526,
-    certSlugs: ["python-v9"],
-  },
-
-  // AFRICA: SQL Databases (63) + Node.js Backend (100) = 163 lessons
+  // 3. AFRICA: Front-End Development Libraries (525 lessons)
   africa: {
     id: "africa",
     name: "Africa",
-    matchRegex: /relational-databases-v9|back-end-development-and-apis-v9/i,
-    maxLessons: 163,
-    certSlugs: ["relational-databases-v9", "back-end-development-and-apis-v9"],
+    matchRegex: /front-end-development-libraries-v9/i,
+    maxLessons: 525,
+    certSlugs: ["front-end-development-libraries-v9"],
+  },
+
+  // 4. NORTH AMERICA: Python Certification (531 lessons)
+  north_america: {
+    id: "north_america",
+    name: "North America",
+    matchRegex: /python-v9/i,
+    maxLessons: 531,
+    certSlugs: ["python-v9"],
+  },
+
+  // 5. SOUTH AMERICA: Relational Databases (63 lessons)
+  south_america: {
+    id: "south_america",
+    name: "South America",
+    matchRegex: /relational-database-v9/i,
+    maxLessons: 63,
+    certSlugs: ["relational-databases-v9"],
+  },
+
+  // 6. AUSTRALIA & OCEANIA: Back-End Development and APIs (Placeholder: 100 lessons)
+  australia_oceania: {
+    id: "australia_oceania",
+    name: "Australia & Oceania",
+    matchRegex: /back-end-development-and-apis-v9/i,
+    maxLessons: 100,
+    certSlugs: ["back-end-development-and-apis-v9"],
   },
 };
 
