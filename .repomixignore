@@ -1,0 +1,23 @@
+# Зависимости
+node_modules/
+backend/package-lock.json
+frontend/package-lock.json
+venv/
+.env
+
+# Файлы сборки, кэш и настройки VS Code
+dist/
+.next/
+.vercel/
+.vscode/
+
+# Данные парсера и базы данных (тяжелые файлы)
+*.json
+*.topojson
+*.csv
+*.sqlite
+
+# ИСКЛЮЧЕНИЯ (эти файлы НАДО включить в отчет):
+!backend/package.json
+!frontend/package.json
+!**/continents-context.json
