@@ -1,44 +1,44 @@
-import express from "express";
-import mongoose from "mongoose";
-import cors from "cors";
-import dotenv from "dotenv";
-import path from "path";
-import apiRoutes from "./routes/api.js";
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import path from 'path';
+import apiRoutes from './routes/api.js';
 
-// Configure dotenv to read the .env file from the repository root
-dotenv.config({ path: path.resolve("../.env") });
+// Load local configuration file only if environment variables are not set by the hosting provider
+if (!process.env.MONGO_URI) {
+    dotenv.config({ path: path.resolve('../.env') });
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Middleware configuration
 app.use(cors());
 app.use(express.json());
-app.use("/api", apiRoutes);
+app.use('/api', apiRoutes);
 
-// Connect to MongoDB Atlas strictly using the "al-devstack" database
+// Database connection initialization
 const connectDB = async () => {
-  try {
-    if (!process.env.MONGO_URI) {
-      throw new Error(
-        "MONGO_URI environment variable not found in root .env file!",
-      );
+    try {
+        if (!process.env.MONGO_URI) {
+            throw new Error('MONGO_URI environment variable not found!');
+        }
+        await mongoose.connect(process.env.MONGO_URI, { dbName: 'al-devstack' });
+        console.log(' 🛰️ MongoDB Atlas (al-devstack) successfully connected...');
+    } catch (error) {
+        console.error(' ❌ Database connection error:', error.message);
+        process.exit(1);
     }
-    await mongoose.connect(process.env.MONGO_URI, { dbName: "al-devstack" });
-    console.log("📡 MongoDB Atlas (al-devstack) successfully connected...");
-  } catch (error) {
-    console.error("❌ Database connection error:", error.message);
-    process.exit(1);
-  }
 };
 
 connectDB();
 
-// Health Check route for UptimeRobot
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date() });
+// Health Check endpoint for monitoring services
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', timestamp: new Date() });
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Backend server successfully running on port ${PORT}`);
+    console.log(`🚀 Backend server successfully running on port ${PORT}`);
 });

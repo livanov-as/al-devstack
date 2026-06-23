@@ -1,69 +1,31 @@
-# 🗺️ al-devstack — ГИС-Система Мониторинга freeCodeCamp
+# al-devstack: ГИС-Мониторинг freeCodeCamp (WSL/Mono)
 
-Интерактивный фулстек-дашборд на основе ГИС-метафоры для визуализации и анализа прогресса обучения на платформе freeCodeCamp. Проект построен по принципу монорепозитория и развернут в среде WSL (Ubuntu).
+## Стек и архитектура
+1. **Parser (Python 3.11/Playwright/PyMongo):** Хедлес-скрейпер профиля `livanov-as`. Фильтрует задачи по `DEFAULT_TARGET_DATE`. Пишет в базу пакетами (`bulk_write`, `UpdateOne`, `upsert=True`).
+2. **Backend (Node.js/Express/Mongoose):** БД `al-devstack` на MongoDB Atlas. Роут `/api/progress/geo-stats` считает ГИС-прогресс по `GEO_MAPPING`: если есть сертификат (`certSlugs`) = 100%, иначе доля уроков от `maxLessons`. Глобальный супер-сертификат зажигает всю карту.
+3. **Frontend (React 19/Vite/Tailwind v4):** Карта мира (`@vnedyalk0v/react19-simple-maps`), сетка активности 7x16 ячеек (16 недель), живая лента (последние 50 задач). Локализация через Context API (`ru`/`en`). Базовый шрифт 18px. Сетка: Left Zone 60%, Right Zone 40%.
 
----
+## Навигация по коду
+* `backend/server.js` — Точка входа, листенер PORT, Mongo-коннект, Health Check.
+* `backend/config/constants.js` — Матрица `GEO_MAPPING` (регулярки и лимиты `maxLessons`).
+* `backend/models/Certificate.js` & `Progress.js` — Mongoose-схемы (коллекции `certificates` и `progress`).
+* `backend/routes/api.js` — Эндпоинты бэкенда и ГИС-агрегация.
+* `frontend/src/` — `main.jsx` и `App.jsx` (инициализация и лэйаут).
+* `frontend/src/context/LanguageProvider.jsx` & `hooks/useLanguage.js` — Локализация.
+* `frontend/src/pages/dashboard/` — Компоненты (`WorldMap`, `ActivityCalendar`, `TaskTimeline`, `CertificatesGrid`).
+* `frontend/src/index.css` — Стили Tailwind v4, темы, скроллбары.
+* `parser/main.py` & `requirements.txt` — Скрипт парсера и его зависимости.
 
-## 🛠️ Архитектура и Стек Технологии
+## Спецификация API (JSON)
+* `GET /health` -> `{"status": "OK", "timestamp": "..."}` (без БД, для UptimeRobot).
+* `GET /api/progress` -> `[ { _id, username, task_name, category, date, url }, ... ]` (все задачи, сортировка по дате).
+* `GET /api/certificates` -> `[ { _id, id, slug, title, url }, ... ]` (все сертификаты, сортировка по `createdAt: -1`).
+* `GET /api/progress/geo-stats` -> `{"regions": { "europe": { id, name, completed, total, percentage, hasCertificate }, ... }, "globalFullStack": boolean }` (ГИС-агрегация).
 
-### 🕵️‍♂️ 1. Parser (Парсер данных)
-
-- **Стек:** Python 3.11 / Playwright / Virtual Environment (`venv`)
-- **Логика:** Автоматизированный инкрементальный сбор решенных задач под новую разметку fCC. Он проверяет базу данных, находит дату последней записи и скачивает только свежие данные, исключая legacy-сертификаты. Всего успешно импортировано **6513+ задач**.
-
-### ⚙️ 2. Backend (Серверная часть)
-
-- **Стек:** Node.js (ES Modules) / Express / Mongoose / MongoDB Atlas
-- **Архитектура:** Модульная структура с разделением на роуты, модели данных и конфигурационные константы.
-- **ГИС-Логика плавного закрашивания:**
-  - _Слой уроков (Вес 85%):_ Яркость региона растет пропорционально решенным задачам относительно `maxLessons` данного блока.
-  - _Слой сертификата (Вес 15%):_ При наличии официального документа регион получает финальные 15% и статус `100% (Освоено официально)`.
-  - _Мировая Синхронизация:_ При получении супер-сертификата (`Certified Full-Stack Developer`) вся карта мира заливается глубоким изумрудным цветом.
-
-### 🎨 3. Frontend (Клиентская часть)
-
-- **Стек:** React (Vite) / Leaflet (React-Leaflet) / Tailwind CSS
-- **Интерфейс:** Интерактивная карта мира (Choropleth Map) с динамической прозрачностью регионов, сетка активности в стиле GitHub (Activity Grid) и live-таблица последних 50 задач.
-
----
-
-## 📂 Структура репозитория и навигация по коду
-
-- 📁 [**`backend/`**](./backend) — Серверное приложение (Node.js / Express)
-  - 📂 [**`config/`**](./backend/config)
-    - 📄 [`constants.js`](./backend/config/constants.js) — ГИС-Матрица (`GEO_MAPPING`) и пороги `maxLessons`.
-  - 📂 [**`models/`**](./backend/models)
-    - 📄 [`Certificate.js`](./backend/models/Certificate.js) — Схема сертификатов (без поля `scanned_at`).
-    - 📄 [`Progress.js`](./backend/models/Progress.js) — Схема решенных задач fCC.
-  - 📂 [**`routes/`**](./backend/routes)
-    - 📄 [`api.js`](./backend/routes/api.js) — Все эндпоинты проекта.
-  - 📄 [`package.json`](./backend/package.json) — Зависимости и конфигурация (`"type": "module"`).
-  - 📄 [`clear-db.js`](./backend/clear-db.js) — Скрипт очистки/сброса базы данных.
-  - 📄 [`server.js`](./backend/server.js) — Главная точка входа бэкенда.
-- 📁 [**`frontend/`**](./frontend) — Клиентское приложение (React / Vite).
-- 📁 [**`parser/`**](./parser) — Парсер данных на Python.
-  - 📄 [`main.py`](./parser/main.py) — Точка запуска Playwright-скрипта.
-  - 📄 [`requirements.txt`](./parser/requirements.txt) — Зависимости парсера (без legacy `requests`).
-- 📄 [`.gitignore`](./.gitignore) — Конфигурация игнорирования Git (защита ключей).
-
----
-
-## 🔗 Спецификация API (Бэкенд-эндпоинты)
-
-- `GET /health` — Легкий пинг-роут без обращения к БД. Используется для UptimeRobot, чтобы предотвратить засыпание бесплатного сервера на Render.com.
-- `GET /api/progress?page=1&limit=50` — Постраничный Read-Only вывод журнала выполненных задач для UI-таблицы.
-- `GET /api/certificates` — Выдача коллекции карточек актуальных сертификатов.
-- `GET /api/progress/geo-stats` — **Критически важный ГИС-роут**. Агрегационный запрос через MongoDB Framework, который группирует задачи по категориям, сопоставляет со словарем континентов и отдает готовые проценты (от 0 до 100) для фронтенда.
-
----
-
-## 🗺️ Распределение ГИС-Матрицы (на май 2026 года)
-
-1.  **Северная Америка** (Алгоритмы): `javascript-algorithms-and-data-structures-v8` | `maxLessons: 1312`
-2.  **Южная Америка** (Фронтенд): `responsive-web-design` + `front-end-development-libraries` | `maxLessons: 2077` (1552 + 525)
-3.  **Евразия** (Анализ данных): `python-v9` | `maxLessons: 526`
-4.  **Африка** (Базы данных и API): `relational-database-v8` + `back-end-development-and-apis` | `maxLessons: 163` (63 + 100)
-
----
-
-_Проект находится в стадии активной разработки фронтенд-компонентов._
+## ГИС-Матрица (constants.js)
+1. `europe` (Responsive Web Design) — `maxLessons: 1552`
+2. `asia` (JavaScript Certification) — `maxLessons: 1318`
+3. `africa` (Front-End Libraries) — `maxLessons: 525`
+4. `north_america` (Python Certification) — `maxLessons: 531`
+5. `south_america` (Relational Databases) — `maxLessons: 63`
+6. `australia_oceania` (Backend & APIs) — `maxLessons: 100`
