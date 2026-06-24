@@ -160,10 +160,8 @@ def main():
             bulk_operations = []
             for task in all_scraped_tasks:
                 query = {
-                    "username": task["username"],
-                    "task_name": task["task_name"],
-                    "category": task["category"],
-                    "date": task["date"]
+                    "username": task["username"], 
+                    "url": task["url"] 
                 }
                 bulk_operations.append(UpdateOne(query, {"$set": task}, upsert=True))
                 
