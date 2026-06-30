@@ -1,23 +1,55 @@
-# Зависимости
+# ==========================================
+# Dependencies and Virtual Environments
+# ==========================================
 node_modules/
 backend/package-lock.json
 frontend/package-lock.json
 venv/
 .env
 
-# Файлы сборки, кэш и настройки VS Code
+# Python Compilation Cache
+__pycache__/
+*.pyc
+
+# ==========================================
+# Build Outputs, Cache, and Editor Settings
+# ==========================================
 dist/
 .next/
 .vercel/
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
 
-# Данные парсера и базы данных (тяжелые файлы)
-*.json
+# Windows Temporary and Lock Files
+~$*
+*~
+
+# Logs and Repomix Output Reports
+*.log
+repomix-output.*
+
+# ==========================================
+# Parser Data and Heavy Databases
+# ==========================================
 *.topojson
 *.csv
 *.sqlite
 
-# ИСКЛЮЧЕНИЯ (эти файлы НАДО включить в отчет):
+# ==========================================
+# EXCEPTIONS (Force include these files)
+# ==========================================
 !backend/package.json
 !frontend/package.json
 !**/continents-context.json
+
+# ==========================================
+# Heavy Media and Graphic Asset Filters
+# ==========================================
+*.svg
+*.png
+*.jpg
+*.jpeg
+*.ico
+*.webp
