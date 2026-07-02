@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
 import { CheckCircle2, Clock } from 'lucide-react'
+import { API_BASE_URL } from '../../config'
 
 // Backup sample data matching Mongoose schema if the backend is offline
 const fallbackTasks = Array.from({ length: 15 }, (_, i) => ({
@@ -20,7 +21,7 @@ export default function TaskTimeline() {
   const [isMocked, setIsMocked] = useState(false)
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/progress')
+    fetch(`${API_BASE_URL}/progress`)
       .then((res) => {
         if (!res.ok) throw new Error('API Error')
         return res.json()

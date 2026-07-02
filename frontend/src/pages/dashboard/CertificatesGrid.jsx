@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Award, ExternalLink } from 'lucide-react'
+import { API_BASE_URL } from '../../config'
 
 export default function CertificatesGrid() {
   const { t } = useLanguage()
@@ -8,7 +9,7 @@ export default function CertificatesGrid() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/certificates')
+    fetch(`${API_BASE_URL}/certificates`)
       .then((res) => {
         if (!res.ok) throw new Error('Certificates Link Offline')
         return res.json()

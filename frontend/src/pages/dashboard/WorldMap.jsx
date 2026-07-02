@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Globe, ShieldAlert, Radio } from 'lucide-react'
+import { API_BASE_URL } from '../../config'
 
 /**
  * Determines the color scheme based on region synchronization status.
@@ -21,7 +22,7 @@ export default function WorldMap() {
   const [hoveredRegion, setHoveredRegion] = useState(null)
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/progress/geo-stats')
+    fetch(`${API_BASE_URL}/progress/geo-stats`)
       .then((res) => {
         if (!res.ok) throw new Error('GIS Link Offline')
         return res.json()

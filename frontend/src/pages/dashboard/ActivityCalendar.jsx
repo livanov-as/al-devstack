@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
+import { API_BASE_URL } from '../../config'
 
 export default function ActivityCalendar() {
   const { t } = useLanguage()
@@ -8,7 +9,7 @@ export default function ActivityCalendar() {
 
   // 1. Загружаем реальные данные из схемы Progress
   useEffect(() => {
-    fetch('http://localhost:5000/api/progress')
+    fetch(`${API_BASE_URL}/progress`)
       .then((res) => {
         if (!res.ok) throw new Error('API Error')
         return res.json()
