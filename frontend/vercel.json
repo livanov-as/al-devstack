@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://al-devstack-production.up.railway.app/:path"
+      "destination": "https://al-devstack-production.up.railway.app/api/:path"
     }
   ]
 }
