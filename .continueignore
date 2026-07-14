@@ -1,0 +1,29 @@
+# --- MongoDB Atlas Secrets Protection ---
+.env
+.env.*
+
+# --- Playwright Tests & Scripts Cache Ignore ---
+*.html
+*.png
+*.jpeg
+*.pyc
+__pycache__/
+*.log
+
+# --- React + Vite Frontend Build Ignore ---
+frontend/dist/
+frontend/build/
+
+# --- Dependency Modules Ignore ---
+backend/node_modules/
+frontend/node_modules/
+
+# --- Python Parser Virtual Environment Ignore ---
+parser/venv/
+parser/.venv/
+parser/env/
+.git/
+
+# --- Important: Do Not Ignore Manifest Files ---
+!package.json
+!tsconfig.json
