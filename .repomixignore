@@ -36,6 +36,7 @@ repomix-output.*
 *.topojson
 *.csv
 *.sqlite
+**/continents-optimized.json
 
 # ==========================================
 # EXCEPTIONS (Force include these files)
