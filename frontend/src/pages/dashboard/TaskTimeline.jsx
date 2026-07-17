@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
-import { CheckCircle2, Clock } from 'lucide-react'
+import { CheckCircle2, Clock, ExternalLink } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
 
 // Backup sample data matching Mongoose schema if the backend is offline
-const fallbackTasks = Array.from({ length: 15 }, (_, i) => ({
+const fallbackTasks = Array.from({ length: 10 }, (_, i) => ({
   _id: `demo-task-${i}`,
   task_name:
     i % 2 === 0
@@ -12,16 +12,18 @@ const fallbackTasks = Array.from({ length: 15 }, (_, i) => ({
       : `Refactored main.py selectors inside beautifulsoup parser`,
   category: i % 2 === 0 ? 'javascript-v9' : 'python-parser',
   date: new Date(Date.now() - i * 3600000).toISOString(),
+  url: 'https://freecodecamp.org',
 }))
 
 export default function TaskTimeline() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage() // Extracted lang property for localized date parsing
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [isMocked, setIsMocked] = useState(false)
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/progress`)
+    // Adjusted routing path targeting the new segregated timeline endpoint
+    fetch(`${API_BASE_URL}/progress/timeline`)
       .then((res) => {
         if (!res.ok) throw new Error('API Error')
         return res.json()
@@ -31,10 +33,10 @@ export default function TaskTimeline() {
         const rawTasks =
           data && Array.isArray(data.tasks) ? data.tasks : fallbackTasks
 
-        // Sort records by timestamp and restrict feed to the last 50 entries
+        // Sort records by timestamp and restrict feed to the last 10 entries to match layout boundaries
         const sortedData = rawTasks
           .sort((a, b) => new Date(b.date) - new Date(a.date))
-          .slice(0, 50)
+          .slice(0, 10)
 
         setTasks(sortedData)
         setIsMocked(!data || !Array.isArray(data.tasks))
@@ -76,10 +78,13 @@ export default function TaskTimeline() {
     }
   }
 
+  // Generates precise user-friendly localized date and time stamp
   const formatTime = (isoString) => {
     try {
       const dateObj = new Date(isoString)
-      return dateObj.toLocaleTimeString([], {
+      return dateObj.toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US', {
+        month: 'short',
+        day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
       })
@@ -110,7 +115,6 @@ export default function TaskTimeline() {
           </div>
           <p className="text-xs text-slate-400">{t.timelineSub}</p>
         </div>
-
         <span
           className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider uppercase ${
             isMocked
@@ -132,34 +136,50 @@ export default function TaskTimeline() {
           tasks.map((task) => {
             const { label, style } = resolveCategoryDetails(task.category)
 
+            // Shared styling for both link and fallback containers
+            const containerStyle =
+              'group flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 transition-all duration-150 hover:border-slate-700/60 hover:bg-slate-800/30 text-left w-full block select-none'
+
+            // Target wrapper definition based on task URL accessibility mapping
+            const CardWrapper = task.url ? 'a' : 'div'
+            const extraProps = task.url
+              ? { href: task.url, target: '_blank', rel: 'noopener noreferrer' }
+              : {}
+
             return (
-              <div
+              <CardWrapper
                 key={task._id}
-                className="group flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 transition-all duration-150 hover:border-slate-700/60 hover:bg-slate-800/30"
+                className={containerStyle}
+                {...extraProps}
               >
-                <div className="mt-0.5 shrink-0">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500 transition-transform group-hover:scale-110" />
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  {/* Maps strictly to task_name from database schema */}
-                  <p className="line-clamp-2 font-mono text-xs font-medium text-slate-300 transition-colors group-hover:text-slate-200">
-                    {task.task_name}
-                  </p>
-
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span
-                      className={`rounded border px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase ${style}`}
-                    >
-                      {label}
-                    </span>
-                    {/* Maps strictly to date from database schema */}
-                    <span className="font-mono text-slate-500">
-                      {formatTime(task.date)}
-                    </span>
+                <div className="flex w-full items-start gap-3">
+                  <div className="mt-0.5 shrink-0">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 transition-transform group-hover:scale-110" />
+                  </div>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    {/* Maps strictly to task_name from database schema */}
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="line-clamp-2 font-mono text-xs font-medium text-slate-300 transition-colors group-hover:text-slate-200">
+                        {task.task_name}
+                      </p>
+                      {task.url && (
+                        <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-slate-600 opacity-0 transition-all duration-150 group-hover:text-slate-400 group-hover:opacity-100" />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span
+                        className={`rounded border px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase ${style}`}
+                      >
+                        {label}
+                      </span>
+                      {/* Maps strictly to date from database schema */}
+                      <span className="font-mono text-slate-500 transition-colors group-hover:text-slate-400">
+                        {formatTime(task.date)}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </CardWrapper>
             )
           })
         )}
