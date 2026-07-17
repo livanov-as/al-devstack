@@ -142,8 +142,19 @@ export default function TaskTimeline() {
 
             // Target wrapper definition based on task URL accessibility mapping
             const CardWrapper = task.url ? 'a' : 'div'
-            const extraProps = task.url
-              ? { href: task.url, target: '_blank', rel: 'noopener noreferrer' }
+            const formattedUrl = task.url
+              ? task.url.startsWith('http://') ||
+                task.url.startsWith('https://')
+                ? task.url
+                : `https://${task.url}`
+              : null
+
+            const extraProps = formattedUrl
+              ? {
+                  href: formattedUrl,
+                  target: '_blank',
+                  rel: 'noopener noreferrer',
+                }
               : {}
 
             return (
