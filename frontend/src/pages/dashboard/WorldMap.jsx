@@ -97,13 +97,14 @@ export default function WorldMap() {
       </div>
 
       {/* Interactive SVG GIS Vector Frame - Adjusted map heights to maximize available screen height */}
-      <div className="relative flex h-full min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
+      <div className="relative flex min-h-90 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20 lg:h-112.5">
         <ComposableMap
           projection="geoEqualEarth"
-          projectionConfig={{ scale: 155 }} // Slightly increased scale to fill up layout boundaries nicely
+          projectionConfig={{ scale: 160 }} // Slightly boosted to scale continents inside the tall grid block
           width={800}
-          height={380} // Optimized matrix aspect-ratio to prevent extreme map vertical compression
-          className="h-full max-h-110 w-full select-none" // Replaced hard max-h-96 boundary with fluid layout scaling
+          height={410} // Balanced aspect-ratio to perfectly stretch up the vector frame
+          preserveAspectRatio="xMidYMid meet" // Enforces unified mathematical scaling alignment vectors
+          className="h-full w-full select-none" // Stripped down the max-h constraint to let the parent layout dictate heights
         >
           <Geographies geography={geoData}>
             {({ geographies }) =>
