@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from 'react'
+import {
+  ComposableMap,
+  Geographies,
+  Geography,
+} from '@vnedyalk0v/react19-simple-maps'
+import { scaleLinear } from 'd3-scale'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Globe, ShieldAlert, Radio } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
+// Import TopoJSON directly as a structured JSON object
+import geoData from '../../assets/continents-optimized.json'
 
 /**
- * Determines the color scheme based on region synchronization status.
- * Colors adapt to Tailwind v4 theme specs.
+ * Generates dynamic color fill steps based on synchronization percentage.
+ * Fully compatible with Tailwind v4 theme specs.
  */
-const getRegionColor = (percentage, hasCert) => {
-  if (hasCert) return 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
-  if (percentage > 50) return 'bg-teal-600/5 border-teal-500/40 text-teal-400'
-  if (percentage > 0) return 'bg-amber-600/5 border-amber-500/30 text-amber-400'
-  return 'bg-slate-950/40 border-slate-800/80 text-slate-500'
+const colorScale = scaleLinear().domain([0, 30, 70, 100]).range([
+  '#0f172a', // 0% - Slate 950 deep core
+  '#047857', // 1-30% - Emerald 700 early sync
+  '#0d9488', // 31-99% - Teal 600 orbital telemetry
+  '#10b981', // 100% - Pure Emerald complete sync
+])
+
+// Maps TopoJSON continent strings to internal database key structures
+const topoJsonIdMap = {
+  Europe: 'europe',
+  Asia: 'asia',
+  Africa: 'africa',
+  'North America': 'north_america',
+  'South America': 'south_america',
+  Oceania: 'australia_oceania',
+  Australia: 'australia_oceania',
 }
 
 export default function WorldMap() {
@@ -38,7 +57,7 @@ export default function WorldMap() {
       })
   }, [])
 
-  // Loading Phase (Centered and fully expanded to match layout height)
+  // Loading Phase (Centered and fully expanded to match layout limits)
   if (loading) {
     return (
       <div className="flex h-full min-h-75 w-full flex-1 items-center justify-center rounded-xl border border-slate-800/60 bg-slate-900/20 py-12 backdrop-blur-md">
@@ -50,7 +69,7 @@ export default function WorldMap() {
     )
   }
 
-  // Error Fallback Phase (Centered and fully expanded to match layout height)
+  // Error Fallback Phase (Centered and fully expanded to match layout dimensions)
   if (error || !gisData) {
     return (
       <div className="flex h-full min-h-75 w-full flex-1 items-center justify-center rounded-xl border border-rose-950/40 bg-rose-950/5 py-12 backdrop-blur-md">
@@ -65,8 +84,8 @@ export default function WorldMap() {
   const { regions, globalFullStack } = gisData
 
   return (
-    <div className="flex w-full flex-1 flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md">
-      {/* Component Header */}
+    <div className="flex h-full w-full flex-1 flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md">
+      {/* Component Header Info */}
       <div className="mb-4 flex items-center justify-between">
         <h3 className="flex items-center gap-2 font-mono text-sm font-bold tracking-wider text-slate-400 uppercase">
           <Globe className="h-4 w-4 text-emerald-500" />
@@ -77,60 +96,75 @@ export default function WorldMap() {
         </span>
       </div>
 
-      {/* Interactive GIS Grid Layout for 6 Continents */}
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {Object.values(regions).map((region) => {
-          const isHovered = hoveredRegion === region.id
-          const cardStyle = getRegionColor(
-            region.percentage,
-            region.hasCertificate,
-          )
+      {/* Interactive SVG GIS Vector Frame - Adjusted map heights to maximize available screen height */}
+      <div className="relative flex h-full min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
+        <ComposableMap
+          projection="geoEqualEarth"
+          projectionConfig={{ scale: 155 }} // Slightly increased scale to fill up layout boundaries nicely
+          width={800}
+          height={380} // Optimized matrix aspect-ratio to prevent extreme map vertical compression
+          className="h-full max-h-110 w-full select-none" // Replaced hard max-h-96 boundary with fluid layout scaling
+        >
+          <Geographies geography={geoData}>
+            {({ geographies }) =>
+              geographies.map((geo) => {
+                // Read continent parameters from TopoJSON structures
+                const continentName =
+                  geo.properties.CONTINENT || geo.properties.name
+                const regionId = topoJsonIdMap[continentName]
+                const regionStats = regions[regionId]
 
-          return (
-            <div
-              key={region.id}
-              onMouseEnter={() => setHoveredRegion(region.id)}
-              onMouseLeave={() => setHoveredRegion(null)}
-              className={`relative flex cursor-crosshair flex-col justify-between rounded-lg border p-3.5 transition-all duration-200 select-none ${cardStyle} ${
-                isHovered
-                  ? 'scale-[1.01] border-emerald-400/40 shadow-[0_0_15px_rgba(16,185,129,0.03)]'
-                  : ''
-              }`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <span className="block font-mono text-[9px] tracking-wider uppercase opacity-50">
-                    {t.mapTooltipTerritory}
-                  </span>
-                  <span className="block truncate font-mono text-xs font-bold tracking-wide">
-                    {region.name}
-                  </span>
-                </div>
-                <div className="shrink-0 text-right">
-                  <span className="font-mono text-xs font-black">
-                    {region.hasCertificate ? '100%' : `${region.percentage}%`}
-                  </span>
-                </div>
-              </div>
+                // Fallback computation for missing/untracked territories
+                const percentage = regionStats
+                  ? regionStats.hasCertificate
+                    ? 100
+                    : regionStats.percentage
+                  : 0
 
-              {/* Progress Bar Indicator */}
-              <div className="mt-3 h-1 w-full overflow-hidden rounded-full border border-slate-900 bg-slate-950/60">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    region.hasCertificate
-                      ? 'bg-emerald-400'
-                      : 'bg-emerald-500/70'
-                  }`}
-                  style={{ width: `${region.percentage}%` }}
-                />
-              </div>
-            </div>
-          )
-        })}
+                const geoColor = colorScale(percentage)
+
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    onMouseEnter={() => regionId && setHoveredRegion(regionId)}
+                    onMouseLeave={() => setHoveredRegion(null)}
+                    style={{
+                      default: {
+                        fill: geoColor,
+                        stroke: '#1e293b', // border-slate-800 gridline line
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                        transition: 'all 250ms ease-in-out',
+                      },
+                      hover: {
+                        fill: regionStats?.hasCertificate
+                          ? '#34d399'
+                          : '#0ea5e9', // High-visibility highlight spectrum
+                        stroke: '#64748b', // border-slate-500 active lock
+                        strokeWidth: 1,
+                        outline: 'none',
+                        cursor: 'crosshair',
+                        filter: 'drop-shadow(0 0 8px rgba(16,185,129,0.2))',
+                        transition: 'all 150ms ease-in-out',
+                      },
+                      pressed: {
+                        fill: '#059669',
+                        stroke: '#1e293b',
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                      },
+                    }}
+                  />
+                )
+              })
+            }
+          </Geographies>
+        </ComposableMap>
       </div>
 
-      {/* THE CORE: Global Full-Stack Trigger Island */}
-      <div className="mt-5 flex flex-col items-center justify-between gap-4 rounded-lg border border-dashed border-slate-800 bg-slate-950/30 p-4 sm:flex-row">
+      {/* THE CORE: Global Full-Stack Trigger Island Infrastructure */}
+      <div className="mt-4 flex shrink-0 flex-col items-center justify-between gap-4 rounded-lg border border-dashed border-slate-800 bg-slate-950/30 p-4 sm:flex-row">
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <div className="relative flex h-3.5 w-3.5 shrink-0">
             {globalFullStack ? (
@@ -153,7 +187,6 @@ export default function WorldMap() {
             </p>
           </div>
         </div>
-
         {globalFullStack && (
           <a
             href="https://freecodecamp.org"
@@ -167,7 +200,7 @@ export default function WorldMap() {
       </div>
 
       {/* Dynamic Cybersecurity Information Matrix Tooltip Panel */}
-      <div className="mt-4 flex items-center justify-center rounded-lg border border-slate-900 bg-slate-950/80 px-3 py-2 text-center">
+      <div className="mt-3 flex shrink-0 items-center justify-center rounded-lg border border-slate-900 bg-slate-950/80 px-3 py-2 text-center">
         {hoveredRegion ? (
           (() => {
             const r = regions[hoveredRegion]
