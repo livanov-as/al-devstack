@@ -30,25 +30,31 @@ function Header() {
 
 function DashboardContent() {
   return (
-    <div className="mx-auto h-[calc(100vh-64px)] max-w-7xl overflow-hidden p-4 sm:p-6">
-      {/* Strict desktop view bounds alignment */}
+    <div className="mx-auto h-[calc(100vh-64px)] max-w-362.5 overflow-hidden p-4 sm:p-6">
+      {/* Dynamic layout structure responsive across multiple display matrices */}
       <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-6 pb-4 lg:grid-cols-12">
-        {/* LEFT INFOGRAPHICS ZONE (60%) - Uniform distributed layouts */}
-        <div className="flex h-full flex-col space-y-5 overflow-hidden lg:col-span-7">
-          <div className="shrink-0">
-            <ActivityCalendar />
-          </div>
+        {/* LEFT INFOGRAPHICS ZONE (Approx. 66% width) - Map & Calendar stack */}
+        <div className="flex h-full flex-col space-y-5 overflow-hidden lg:col-span-8">
+          {/* Main geographic progress tracking engine mapping */}
           <div className="flex min-h-0 flex-1 flex-col">
             <WorldMap />
           </div>
+          {/* Horizontally stretched localized activity summary grid below the map */}
           <div className="shrink-0">
-            <CertificatesGrid />
+            <ActivityCalendar />
           </div>
         </div>
 
-        {/* RIGHT LIVE TERMINAL ZONE (40%) - Anchored matching view height */}
-        <div className="flex h-full max-h-full flex-col overflow-hidden lg:col-span-5">
-          <TaskTimeline />
+        {/* RIGHT LIVE TERMINAL ZONE (Approx. 33% width) - Synchronized feeds stack */}
+        <div className="flex h-full max-h-full flex-col space-y-5 overflow-hidden lg:col-span-4">
+          {/* Top segment: Live tasks stream validation feed */}
+          <div className="min-h-0 flex-1">
+            <TaskTimeline />
+          </div>
+          {/* Bottom segment: Earned credentials achievements log */}
+          <div className="min-h-0 flex-1">
+            <CertificatesGrid />
+          </div>
         </div>
       </div>
     </div>
