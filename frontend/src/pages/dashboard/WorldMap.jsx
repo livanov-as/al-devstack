@@ -84,7 +84,8 @@ export default function WorldMap() {
   const { regions, globalFullStack } = gisData
 
   return (
-    <div className="flex h-full w-full flex-1 flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md">
+    /* Enforced unified mathematical aspect-ratio boundary matching map projection vectors */
+    <div className="flex aspect-2/11 w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md lg:aspect-2/1">
       {/* Component Header Info */}
       <div className="mb-2 flex shrink-0 items-center justify-between">
         <h3 className="flex items-center gap-2 font-mono text-sm font-bold tracking-wider text-slate-400 uppercase">
@@ -96,14 +97,13 @@ export default function WorldMap() {
         </span>
       </div>
 
-      {/* Expanded Interactive SVG GIS Vector Frame without restrictive boundaries */}
-      <div className="relative flex min-h-95 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
+      {/* Responsive Interactive SVG GIS Vector Frame scaling naturally based on width vectors */}
+      <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
         <ComposableMap
           projection="geoEqualEarth"
-          projectionConfig={{ scale: 190 }} // Scale up continents significantly to fill horizontally
+          projectionConfig={{ scale: 135 }} // Standardized projection scale preventing continent edge cropping
           width={800}
-          height={350} // Tightened aspect ratio matrix for widespread landscape viewport
-          preserveAspectRatio="xMidYMid meet"
+          height={400} // Pure 2:1 mapping aspect-ratio matching the parental wrapper aspect rules
           className="h-full w-full select-none"
         >
           <Geographies geography={geoData}>
@@ -163,7 +163,7 @@ export default function WorldMap() {
       </div>
 
       {/* THE CORE: Global Full-Stack Trigger Island Infrastructure */}
-      <div className="mt-4 flex shrink-0 flex-col items-center justify-between gap-4 rounded-lg border border-dashed border-slate-800 bg-slate-950/30 p-4 sm:flex-row">
+      <div className="mt-3 flex shrink-0 flex-col items-center justify-between gap-4 rounded-lg border border-dashed border-slate-800 bg-slate-950/30 p-3 sm:flex-row">
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <div className="relative flex h-3.5 w-3.5 shrink-0">
             {globalFullStack ? (
@@ -199,7 +199,7 @@ export default function WorldMap() {
       </div>
 
       {/* Dynamic Cybersecurity Information Matrix Tooltip Panel */}
-      <div className="mt-3 flex shrink-0 items-center justify-center rounded-lg border border-slate-900 bg-slate-950/80 px-3 py-2 text-center">
+      <div className="mt-2.5 flex shrink-0 items-center justify-center rounded-lg border border-slate-900 bg-slate-950/80 px-3 py-1.5 text-center">
         {hoveredRegion ? (
           (() => {
             const r = regions[hoveredRegion]
