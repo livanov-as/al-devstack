@@ -1,10 +1,5 @@
 /**
- * Dynamic API Base URL Configuration
- *
- * Automatically switches between local development server and Vercel production proxy.
- * Prevents hardcoded environment leaks and solves CORS issues seamlessly.
+ * Dynamic API Base URL configuration utilizing Vite environment variables.
+ * Automatically falls back to relative routing proxy in production mode.
  */
-export const API_BASE_URL =
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000/api' // Local fallback for development environment
-    : '/api' // Production relative path handled by Vercel reverse proxy
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
