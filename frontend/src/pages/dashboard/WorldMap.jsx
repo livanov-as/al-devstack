@@ -86,7 +86,7 @@ export default function WorldMap() {
   return (
     <div className="flex h-full w-full flex-1 flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md">
       {/* Component Header Info */}
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <h3 className="flex items-center gap-2 font-mono text-sm font-bold tracking-wider text-slate-400 uppercase">
           <Globe className="h-4 w-4 text-emerald-500" />
           {t.worldMapTitle}
@@ -96,26 +96,24 @@ export default function WorldMap() {
         </span>
       </div>
 
-      {/* Interactive SVG GIS Vector Frame - Adjusted map heights to maximize available screen height */}
-      <div className="relative flex min-h-90 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20 lg:h-112.5">
+      {/* Expanded Interactive SVG GIS Vector Frame without restrictive boundaries */}
+      <div className="relative flex min-h-95 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
         <ComposableMap
           projection="geoEqualEarth"
-          projectionConfig={{ scale: 160 }} // Slightly boosted to scale continents inside the tall grid block
+          projectionConfig={{ scale: 190 }} // Scale up continents significantly to fill horizontally
           width={800}
-          height={410} // Balanced aspect-ratio to perfectly stretch up the vector frame
-          preserveAspectRatio="xMidYMid meet" // Enforces unified mathematical scaling alignment vectors
-          className="h-full w-full select-none" // Stripped down the max-h constraint to let the parent layout dictate heights
+          height={350} // Tightened aspect ratio matrix for widespread landscape viewport
+          preserveAspectRatio="xMidYMid meet"
+          className="h-full w-full select-none"
         >
           <Geographies geography={geoData}>
             {({ geographies }) =>
               geographies.map((geo) => {
-                // Read continent parameters from TopoJSON structures
                 const continentName =
                   geo.properties.CONTINENT || geo.properties.name
                 const regionId = topoJsonIdMap[continentName]
                 const regionStats = regions[regionId]
 
-                // Fallback computation for missing/untracked territories
                 const percentage = regionStats
                   ? regionStats.hasCertificate
                     ? 100
@@ -133,7 +131,7 @@ export default function WorldMap() {
                     style={{
                       default: {
                         fill: geoColor,
-                        stroke: '#1e293b', // border-slate-800 gridline line
+                        stroke: '#1e293b',
                         strokeWidth: 0.5,
                         outline: 'none',
                         transition: 'all 250ms ease-in-out',
@@ -141,8 +139,8 @@ export default function WorldMap() {
                       hover: {
                         fill: regionStats?.hasCertificate
                           ? '#34d399'
-                          : '#0ea5e9', // High-visibility highlight spectrum
-                        stroke: '#64748b', // border-slate-500 active lock
+                          : '#0ea5e9',
+                        stroke: '#64748b',
                         strokeWidth: 1,
                         outline: 'none',
                         cursor: 'crosshair',
