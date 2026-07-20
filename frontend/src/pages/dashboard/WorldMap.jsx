@@ -286,22 +286,28 @@ export default function WorldMap() {
 
             return (
               <Marker key={center.id} coordinates={center.coordinates}>
+                {/* Scaled up trophy vector graphics with strong high-contrast backing stroke outlines */}
                 <g
-                  transform="translate(-6, -12) scale(0.6)"
-                  className="pointer-events-none transition-transform duration-300"
+                  transform="translate(-10, -20) scale(1.1)"
+                  className="pointer-events-none drop-shadow-[0_2px_8px_rgba(52,211,153,0.5)]"
                 >
+                  {/* Outer black silhouette container layer to elevate visual visibility over synced terrains */}
                   <path
                     d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z"
                     fill="#34d399"
+                    stroke="#020617"
+                    strokeWidth="1.5"
                   />
                   <path
                     d="M4 6a2 2 0 1 1 0-4h2v4H4zM20 6V2h2a2 2 0 1 1 0 4h-2z"
                     fill="#34d399"
+                    stroke="#020617"
+                    strokeWidth="1.5"
                   />
                   <path
                     d="M12 10v4M10 14h4M8 18h8v2H8z"
-                    stroke="#10b981"
-                    strokeWidth="2"
+                    stroke="#34d399"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                   />
                 </g>
