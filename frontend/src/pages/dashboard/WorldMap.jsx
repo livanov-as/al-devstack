@@ -199,11 +199,11 @@ export default function WorldMap() {
       <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
         <ComposableMap
           projection="geoEqualEarth"
-          // [400, 225] is the absolute optical center of our 800x380 viewport canvases shifted slightly down
+          // [400, 245] is the absolute optical center of our 800x380 viewport canvases shifted slightly down
           projectionConfig={{
             scale: 140,
             center: [0, 0],
-            translate: [400, 225],
+            translate: [400, 245],
           }}
           width={800}
           height={380}
