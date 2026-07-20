@@ -3,7 +3,7 @@ import {
   ComposableMap,
   Geographies,
   Geography,
-  Marker
+  Marker,
 } from '@vnedyalk0v/react19-simple-maps'
 import { scaleLinear } from 'd3-scale'
 import { useLanguage } from '../../hooks/useLanguage'
@@ -34,7 +34,7 @@ const continentCenters = [
   { id: 'europe', coordinates: [20, 50], name: 'Europe' },
   { id: 'africa', coordinates: [20, 10], name: 'Africa' },
   { id: 'asia', coordinates: [100, 45], name: 'Asia' },
-  { id: 'australia_oceania', coordinates: [135, -25], name: 'Oceania' }
+  { id: 'australia_oceania', coordinates: [135, -25], name: 'Oceania' },
 ]
 
 export default function WorldMap() {
@@ -42,8 +42,13 @@ export default function WorldMap() {
   const [gisData, setGisData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  
-  const [tooltip, setTooltip] = useState({ visible: false, x: 0, y: 0, content: null })
+
+  const [tooltip, setTooltip] = useState({
+    visible: false,
+    x: 0,
+    y: 0,
+    content: null,
+  })
   const [isLegendOpen, setIsLegendOpen] = useState(false)
   const mapContainerRef = useRef(null)
 
@@ -65,10 +70,13 @@ export default function WorldMap() {
   }, [])
 
   const trackingMetrics = useMemo(() => {
-    if (!gisData || !gisData.regions) return { earned: 0, blurValue: 8, opacityValue: 0.1 }
-    const totalCerts = Object.values(gisData.regions).filter(r => r.hasCertificate).length
-    const blurValue = Math.max(0, 8 - (totalCerts * 1.15))
-    const opacityValue = Math.min(1, 0.1 + (totalCerts * 0.13))
+    if (!gisData || !gisData.regions)
+      return { earned: 0, blurValue: 8, opacityValue: 0.1 }
+    const totalCerts = Object.values(gisData.regions).filter(
+      (r) => r.hasCertificate,
+    ).length
+    const blurValue = Math.max(0, 8 - totalCerts * 1.15)
+    const opacityValue = Math.min(1, 0.1 + totalCerts * 0.13)
     return { earned: totalCerts, blurValue, opacityValue }
   }, [gisData])
 
@@ -76,50 +84,61 @@ export default function WorldMap() {
     if (!mapContainerRef.current) return
     const bounds = mapContainerRef.current.getBoundingClientRect()
     // Calculate cursor positions safely with absolute offsets
-    setTooltip(prev => ({
+    setTooltip((prev) => ({
       ...prev,
       x: e.clientX - bounds.left + 12,
-      y: e.clientY - bounds.top + 12
+      y: e.clientY - bounds.top + 12,
     }))
   }
 
   const handleRegionLeave = () => {
-    setTooltip(prev => ({ ...prev, visible: false, content: null }))
+    setTooltip((prev) => ({ ...prev, visible: false, content: null }))
   }
 
   const handleRegionHover = (regionId) => {
     if (regionId === 'secret_island') {
       const content = (
         <div className="font-mono text-[11px] tracking-wide text-slate-200">
-          <strong className="text-emerald-400 font-bold">🏝️ {t.fullStackIslandTitle || 'Secret Island'}</strong>
-          <div className="mt-1 text-slate-400">Progression: {trackingMetrics.earned} / 7 Milestones</div>
+          <strong className="font-bold text-emerald-400">
+            🏝️ {t.fullStackIslandTitle || 'Secret Island'}
+          </strong>
+          <div className="mt-1 text-slate-400">
+            Progression: {trackingMetrics.earned} / 7 Milestones
+          </div>
           <div className="mt-1 border-t border-slate-800 pt-1 text-[10px] text-slate-500 uppercase">
             {globalFullStack ? 'Core System Unlocked' : 'Encrypted Frequency'}
           </div>
         </div>
       )
-      setTooltip(prev => ({ ...prev, visible: true, content }))
+      setTooltip((prev) => ({ ...prev, visible: true, content }))
       return
     }
 
     const r = regions[regionId]
     if (!r) return
     const tech = t[`region_${r.id}`] || ''
-    
+
     const content = (
       <div className="font-mono text-[11px] tracking-wide text-slate-200">
-        <strong className="text-emerald-400 font-bold">⚡ {t.mapTooltipTerritory || 'Sector'}: {r.name}</strong>
+        <strong className="font-bold text-emerald-400">
+          ⚡ {t.mapTooltipTerritory || 'Sector'}: {r.name}
+        </strong>
         <div className="mt-1 text-slate-400">{tech}</div>
         <div className="mt-1 border-t border-slate-800 pt-1">
           {r.hasCertificate ? (
-            <span className="font-bold text-emerald-400">{t.mapTooltipSynced || 'Synced'}: 100%</span>
+            <span className="font-bold text-emerald-400">
+              {t.mapTooltipSynced || 'Synced'}: 100%
+            </span>
           ) : (
-            <span className="text-amber-400">{t.mapTooltipExplored || 'Explored'}: {r.percentage}% ({r.completed}/{r.total})</span>
+            <span className="text-amber-400">
+              {t.mapTooltipExplored || 'Explored'}: {r.percentage}% (
+              {r.completed}/{r.total})
+            </span>
           )}
         </div>
       </div>
     )
-    setTooltip(prev => ({ ...prev, visible: true, content }))
+    setTooltip((prev) => ({ ...prev, visible: true, content }))
   }
 
   if (loading) {
@@ -147,9 +166,9 @@ export default function WorldMap() {
   const { regions, globalFullStack } = gisData
 
   return (
-    <div 
-      className="flex h-full w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md relative" 
-      ref={mapContainerRef} 
+    <div
+      className="relative flex h-full w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md"
+      ref={mapContainerRef}
       onMouseMove={handleMouseMove}
     >
       {/* Component Header Terminal Row */}
@@ -159,9 +178,9 @@ export default function WorldMap() {
           {t.worldMapTitle}
         </h3>
         <div className="flex items-center gap-3">
-          <button 
-            onClick={() => setIsLegendOpen(true)} 
-            className="cursor-pointer text-slate-500 hover:text-emerald-400 transition-colors"
+          <button
+            onClick={() => setIsLegendOpen(true)}
+            className="cursor-pointer text-slate-500 transition-colors hover:text-emerald-400"
           >
             <HelpCircle className="h-4 w-4" />
           </button>
@@ -175,75 +194,121 @@ export default function WorldMap() {
       <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
         <ComposableMap
           projection="geoEqualEarth"
-          projectionConfig={{ scale: 140, center: [11, -12] }}
+          projectionConfig={{ scale: 140, center: [0, 0] }}
           width={800}
           height={380}
           className="h-full w-full select-none"
         >
-          <Geographies geography={geoData}>
-            {({ geographies }) =>
-              geographies.map((geo) => {
-                const continentName = geo.properties.CONTINENT || geo.properties.name
-                const regionId = topoJsonIdMap[continentName]
-                const regionStats = regions[regionId]
-                const percentage = regionStats ? (regionStats.hasCertificate ? 100 : regionStats.percentage) : 0
-                const geoColor = colorScale(percentage)
+          <g transform="translate(0, 35)">
+            <Geographies geography={geoData}>
+              {({ geographies }) =>
+                geographies.map((geo) => {
+                  const continentName =
+                    geo.properties.CONTINENT || geo.properties.name
+                  const regionId = topoJsonIdMap[continentName]
+                  const regionStats = regions[regionId]
+                  const percentage = regionStats
+                    ? regionStats.hasCertificate
+                      ? 100
+                      : regionStats.percentage
+                    : 0
+                  const geoColor = colorScale(percentage)
 
-                return (
-                  <Geography
-                    key={geo.rsmKey}
-                    geography={geo}
-                    onMouseEnter={() => regionId && handleRegionHover(regionId)}
-                    onMouseLeave={handleRegionLeave}
-                    style={{
-                      default: { fill: geoColor, stroke: '#1e293b', strokeWidth: 0.5, outline: 'none', transition: 'all 250ms' },
-                      hover: { fill: regionStats?.hasCertificate ? '#34d399' : '#0ea5e9', stroke: '#64748b', strokeWidth: 1, outline: 'none', cursor: 'crosshair' },
-                      pressed: { fill: '#059669', stroke: '#1e293b', strokeWidth: 0.5, outline: 'none' }
-                    }}
-                  />
-                )
-              })
-            }
-          </Geographies>
+                  return (
+                    <Geography
+                      key={geo.rsmKey}
+                      geography={geo}
+                      onMouseEnter={() =>
+                        regionId && handleRegionHover(regionId)
+                      }
+                      onMouseLeave={handleRegionLeave}
+                      style={{
+                        default: {
+                          fill: geoColor,
+                          stroke: '#1e293b',
+                          strokeWidth: 0.5,
+                          outline: 'none',
+                          transition: 'all 250ms',
+                        },
+                        hover: {
+                          fill: regionStats?.hasCertificate
+                            ? '#34d399'
+                            : '#0ea5e9',
+                          stroke: '#64748b',
+                          strokeWidth: 1,
+                          outline: 'none',
+                          cursor: 'crosshair',
+                        },
+                        pressed: {
+                          fill: '#059669',
+                          stroke: '#1e293b',
+                          strokeWidth: 0.5,
+                          outline: 'none',
+                        },
+                      }}
+                    />
+                  )
+                })
+              }
+            </Geographies>
 
-          {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
-          <path
-            d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
-            style={{
-              fill: globalFullStack ? '#34d399' : '#10b981',
-              stroke: globalFullStack ? '#6ee7b7' : '#047857',
-              strokeWidth: 0.7,
-              filter: `blur(${trackingMetrics.blurValue}px)`,
-              opacity: trackingMetrics.opacityValue,
-              transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-            className={globalFullStack ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]' : ''}
-            onMouseEnter={() => handleRegionHover('secret_island')}
-            onMouseLeave={handleRegionLeave}
-          />
+            {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
+            <path
+              d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
+              style={{
+                fill: globalFullStack ? '#34d399' : '#10b981',
+                stroke: globalFullStack ? '#6ee7b7' : '#047857',
+                strokeWidth: 0.7,
+                filter: `blur(${trackingMetrics.blurValue}px)`,
+                opacity: trackingMetrics.opacityValue,
+                transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
+              className={
+                globalFullStack
+                  ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]'
+                  : ''
+              }
+              onMouseEnter={() => handleRegionHover('secret_island')}
+              onMouseLeave={handleRegionLeave}
+            />
 
-          {/* Synchronized vector trophy badges */}
-          {continentCenters.map(center => {
-            const targetRegion = regions[center.id]
-            if (!targetRegion || !targetRegion.hasCertificate) return null
+            {/* Synchronized vector trophy badges */}
+            {continentCenters.map((center) => {
+              const targetRegion = regions[center.id]
+              if (!targetRegion || !targetRegion.hasCertificate) return null
 
-            return (
-              <Marker key={center.id} coordinates={center.coordinates}>
-                <g transform="translate(-6, -12) scale(0.6)" className="animate-bounce pointer-events-none">
-                  <path d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z" fill="#34d399" />
-                  <path d="M4 6a2 2 0 1 1 0-4h2v4H4zM20 6V2h2a2 2 0 1 1 0 4h-2z" fill="#34d399" />
-                  <path d="M12 10v4M10 14h4M8 18h8v2H8z" stroke="#10b981" strokeWidth="2" strokeLinecap="round" />
-                </g>
-              </Marker>
-            )
-          })}
+              return (
+                <Marker key={center.id} coordinates={center.coordinates}>
+                  <g
+                    transform="translate(-6, -12) scale(0.6)"
+                    className="pointer-events-none animate-bounce"
+                  >
+                    <path
+                      d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z"
+                      fill="#34d399"
+                    />
+                    <path
+                      d="M4 6a2 2 0 1 1 0-4h2v4H4zM20 6V2h2a2 2 0 1 1 0 4h-2z"
+                      fill="#34d399"
+                    />
+                    <path
+                      d="M12 10v4M10 14h4M8 18h8v2H8z"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </g>
+                </Marker>
+              )
+            })}
+          </g>
         </ComposableMap>
 
         {/* Floating Tooltip Panel with absolute boundary capture */}
         {tooltip.visible && (
           <div
             style={{ left: tooltip.x, top: tooltip.y }}
-            className="absolute pointer-events-none z-50 rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md max-w-xs animate-fade-in"
+            className="animate-fade-in pointer-events-none absolute z-50 max-w-xs rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md"
           >
             {tooltip.content}
           </div>
@@ -252,39 +317,54 @@ export default function WorldMap() {
 
       {/* Embedded Modal Component Overlay for Legend Specs */}
       {isLegendOpen && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 rounded-xl backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl relative">
+        <div className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-slate-950/80 p-4 backdrop-blur-xs">
+          <div className="relative w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h4 className="font-mono text-xs font-bold text-slate-200 uppercase tracking-wider">GIS Matrix Legend</h4>
-              <button onClick={() => setIsLegendOpen(false)} className="cursor-pointer text-slate-500 hover:text-slate-300">
+              <h4 className="font-mono text-xs font-bold tracking-wider text-slate-200 uppercase">
+                GIS Matrix Legend
+              </h4>
+              <button
+                onClick={() => setIsLegendOpen(false)}
+                className="cursor-pointer text-slate-500 hover:text-slate-300"
+              >
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="mt-4 space-y-3 font-mono text-xs">
               <div className="flex items-center gap-3">
-                <div className="h-3 w-5 rounded-xs bg-[#0f172a] border border-slate-800" />
+                <div className="h-3 w-5 rounded-xs border border-slate-800 bg-[#0f172a]" />
                 <span className="text-slate-400">0% — Core Offline</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-3 w-5 rounded-xs bg-[#047857]" />
-                <span className="text-slate-400">1 - 30% — Sync Initialized</span>
+                <span className="text-slate-400">
+                  1 - 30% — Sync Initialized
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-3 w-5 rounded-xs bg-[#0d9488]" />
-                <span className="text-slate-400">31 - 99% — Sector Syncing</span>
+                <span className="text-slate-400">
+                  31 - 99% — Sector Syncing
+                </span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-3 w-5 rounded-xs bg-[#10b981]" />
-                <span className="text-slate-400">100% — Full Sync Complete</span>
+                <span className="text-slate-400">
+                  100% — Full Sync Complete
+                </span>
               </div>
               <div className="flex items-center gap-3 border-t border-slate-800 pt-3">
-                <div className="flex h-4 w-5 items-center justify-center"><div className="h-2 w-2 bg-[#34d399] rounded-full animate-ping" /></div>
-                <span className="text-emerald-400 font-semibold">Trophy — Milestone Cleared</span>
+                <div className="flex h-4 w-5 items-center justify-center">
+                  <div className="h-2 w-2 animate-ping rounded-full bg-[#34d399]" />
+                </div>
+                <span className="font-semibold text-emerald-400">
+                  Trophy — Milestone Cleared
+                </span>
               </div>
-              
+
               {/* Core URL action moved beautifully directly into help info overlay context */}
               {globalFullStack && (
-                <div className="mt-4 pt-3 border-t border-slate-800">
+                <div className="mt-4 border-t border-slate-800 pt-3">
                   <a
                     href="https://freecodecamp.org"
                     target="_blank"
