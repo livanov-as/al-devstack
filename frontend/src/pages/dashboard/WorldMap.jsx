@@ -286,27 +286,27 @@ export default function WorldMap() {
 
             return (
               <Marker key={center.id} coordinates={center.coordinates}>
-                {/* Scaled up trophy vector graphics with strong high-contrast backing stroke outlines */}
+                {/* Scaled down to 0.85 for slick footprint with a premium high-contrast golden cyberpunk asset glow */}
                 <g
-                  transform="translate(-10, -20) scale(1.1)"
-                  className="pointer-events-none drop-shadow-[0_2px_8px_rgba(52,211,153,0.5)]"
+                  transform="translate(-8, -15) scale(0.85)"
+                  className="pointer-events-none drop-shadow-[0_2px_10px_rgba(234,179,8,0.4)]"
                 >
-                  {/* Outer black silhouette container layer to elevate visual visibility over synced terrains */}
+                  {/* Premium metallic cyber gold theme styling using Amber/Yellow specs */}
                   <path
                     d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z"
-                    fill="#34d399"
+                    fill="#eab308"
                     stroke="#020617"
                     strokeWidth="1.5"
                   />
                   <path
                     d="M4 6a2 2 0 1 1 0-4h2v4H4zM20 6V2h2a2 2 0 1 1 0 4h-2z"
-                    fill="#34d399"
+                    fill="#eab308"
                     stroke="#020617"
                     strokeWidth="1.5"
                   />
                   <path
                     d="M12 10v4M10 14h4M8 18h8v2H8z"
-                    stroke="#34d399"
+                    stroke="#eab308"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                   />
