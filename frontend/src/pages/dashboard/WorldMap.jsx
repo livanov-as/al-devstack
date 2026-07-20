@@ -136,8 +136,7 @@ export default function WorldMap() {
             </span>
           ) : (
             <span className="text-amber-400">
-              {t.mapTooltipExplored || 'Explored'}: {r.percentage}% (
-              {r.completed}/{r.total})
+              {t.mapTooltipExplored || 'Explored'}: {r.percentage}%
             </span>
           )}
         </div>
