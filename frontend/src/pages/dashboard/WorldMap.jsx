@@ -194,114 +194,115 @@ export default function WorldMap() {
       <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
         <ComposableMap
           projection="geoEqualEarth"
-          projectionConfig={{ scale: 140, center: [0, 0] }}
+          // [400, 225] is the absolute optical center of our 800x380 viewport canvases shifted slightly down
+          projectionConfig={{
+            scale: 140,
+            center: [0, 0],
+            translate: [400, 225],
+          }}
           width={800}
           height={380}
           className="h-full w-full select-none"
         >
-          <g transform="translate(0, 35)">
-            <Geographies geography={geoData}>
-              {({ geographies }) =>
-                geographies.map((geo) => {
-                  const continentName =
-                    geo.properties.CONTINENT || geo.properties.name
-                  const regionId = topoJsonIdMap[continentName]
-                  const regionStats = regions[regionId]
-                  const percentage = regionStats
-                    ? regionStats.hasCertificate
-                      ? 100
-                      : regionStats.percentage
-                    : 0
-                  const geoColor = colorScale(percentage)
+          <Geographies geography={geoData}>
+            {({ geographies }) =>
+              geographies.map((geo) => {
+                const continentName =
+                  geo.properties.CONTINENT || geo.properties.name
+                const regionId = topoJsonIdMap[continentName]
+                const regionStats = regions[regionId]
+                const percentage = regionStats
+                  ? regionStats.hasCertificate
+                    ? 100
+                    : regionStats.percentage
+                  : 0
+                const geoColor = colorScale(percentage)
 
-                  return (
-                    <Geography
-                      key={geo.rsmKey}
-                      geography={geo}
-                      onMouseEnter={() =>
-                        regionId && handleRegionHover(regionId)
-                      }
-                      onMouseLeave={handleRegionLeave}
-                      style={{
-                        default: {
-                          fill: geoColor,
-                          stroke: '#1e293b',
-                          strokeWidth: 0.5,
-                          outline: 'none',
-                          transition: 'all 250ms',
-                        },
-                        hover: {
-                          fill: regionStats?.hasCertificate
-                            ? '#34d399'
-                            : '#0ea5e9',
-                          stroke: '#64748b',
-                          strokeWidth: 1,
-                          outline: 'none',
-                          cursor: 'crosshair',
-                        },
-                        pressed: {
-                          fill: '#059669',
-                          stroke: '#1e293b',
-                          strokeWidth: 0.5,
-                          outline: 'none',
-                        },
-                      }}
-                    />
-                  )
-                })
-              }
-            </Geographies>
+                return (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    onMouseEnter={() => regionId && handleRegionHover(regionId)}
+                    onMouseLeave={handleRegionLeave}
+                    style={{
+                      default: {
+                        fill: geoColor,
+                        stroke: '#1e293b',
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                        transition: 'all 250ms',
+                      },
+                      hover: {
+                        fill: regionStats?.hasCertificate
+                          ? '#34d399'
+                          : '#0ea5e9',
+                        stroke: '#64748b',
+                        strokeWidth: 1,
+                        outline: 'none',
+                        cursor: 'crosshair',
+                      },
+                      pressed: {
+                        fill: '#059669',
+                        stroke: '#1e293b',
+                        strokeWidth: 0.5,
+                        outline: 'none',
+                      },
+                    }}
+                  />
+                )
+              })
+            }
+          </Geographies>
 
-            {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
-            <path
-              d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
-              style={{
-                fill: globalFullStack ? '#34d399' : '#10b981',
-                stroke: globalFullStack ? '#6ee7b7' : '#047857',
-                strokeWidth: 0.7,
-                filter: `blur(${trackingMetrics.blurValue}px)`,
-                opacity: trackingMetrics.opacityValue,
-                transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-              className={
-                globalFullStack
-                  ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]'
-                  : ''
-              }
-              onMouseEnter={() => handleRegionHover('secret_island')}
-              onMouseLeave={handleRegionLeave}
-            />
+          {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
+          <path
+            d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
+            style={{
+              fill: globalFullStack ? '#34d399' : '#10b981',
+              stroke: globalFullStack ? '#6ee7b7' : '#047857',
+              strokeWidth: 0.7,
+              filter: `blur(${trackingMetrics.blurValue}px)`,
+              opacity: trackingMetrics.opacityValue,
+              transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+            className={
+              globalFullStack
+                ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]'
+                : ''
+            }
+            onMouseEnter={() => handleRegionHover('secret_island')}
+            onMouseLeave={handleRegionLeave}
+          />
 
-            {/* Synchronized vector trophy badges */}
-            {continentCenters.map((center) => {
-              const targetRegion = regions[center.id]
-              if (!targetRegion || !targetRegion.hasCertificate) return null
+          {/* Synchronized vector trophy badges */}
+          {continentCenters.map((center) => {
+            const targetRegion = regions[center.id]
+            if (!targetRegion || !targetRegion.hasCertificate) return null
 
-              return (
-                <Marker key={center.id} coordinates={center.coordinates}>
-                  <g
-                    transform="translate(-6, -12) scale(0.6)"
-                    className="pointer-events-none animate-bounce"
-                  >
-                    <path
-                      d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z"
-                      fill="#34d399"
-                    />
-                    <path
-                      d="M4 6a2 2 0 1 1 0-4h2v4H4zM20 6V2h2a2 2 0 1 1 0 4h-2z"
-                      fill="#34d399"
-                    />
-                    <path
-                      d="M12 10v4M10 14h4M8 18h8v2H8z"
-                      stroke="#10b981"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </g>
-                </Marker>
-              )
-            })}
-          </g>
+            return (
+              <Marker key={center.id} coordinates={center.coordinates}>
+                <g
+                  transform="translate(-6, -12) scale(0.6)"
+                  className="pointer-events-none animate-bounce"
+                >
+                  <path
+                    d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z"
+                    fill="#34d399"
+                  />
+                  <path
+                    d="M4 6a2 2 0 1 1 0-4h2v4H4zM20 6V2h2a2 2 0 1 1 0 4h-2z"
+                    fill="#34d399"
+                  />
+                  <path
+                    d="M12 10v4M10 14h4M8 18h8v2H8z"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </g>
+              </Marker>
+            )
+          })}
         </ComposableMap>
 
         {/* Floating Tooltip Panel with absolute boundary capture */}
