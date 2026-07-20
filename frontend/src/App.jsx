@@ -9,7 +9,7 @@ import CertificatesGrid from './pages/dashboard/CertificatesGrid'
 function Header() {
   const { lang, setLang } = useLanguage()
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/50 px-6 py-4 backdrop-blur-md">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/50 px-4 py-4 backdrop-blur-md md:px-6">
       <div className="flex items-center gap-3">
         <span className="font-mono text-xl font-black tracking-wider text-emerald-400">
           al-devstack
@@ -30,28 +30,29 @@ function Header() {
 
 function DashboardContent() {
   return (
-    <div className="mx-auto h-[calc(100vh-64px)] max-w-362.5 overflow-hidden p-4 sm:p-6">
-      {/* Dynamic layout structure responsive across multiple display matrices */}
-      <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-6 pb-4 lg:grid-cols-12">
-        {/* LEFT INFOGRAPHICS ZONE (Approx. 66% width) - Map & Calendar stack */}
+    // Re-adjusted padding boundaries (p-4 md:p-6) maximizing screen usage with seamless viewport calculation
+    <div className="mx-auto h-[calc(100vh-64px)] max-w-full overflow-hidden p-4 md:p-6">
+      {/* Dynamic layout structure highly responsive across multiple monitor display configurations */}
+      <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-5 pb-2 lg:grid-cols-12">
+        {/* LEFT INFOGRAPHICS ZONE (Approx. 66% width matrix) - Map & Calendar cluster */}
         <div className="flex h-full flex-col space-y-5 overflow-hidden lg:col-span-8">
-          {/* Main geographic progress tracking engine mapping */}
+          {/* Main geographic progress tracking engine mapping workspace */}
           <div className="flex min-h-0 flex-1 flex-col">
             <WorldMap />
           </div>
-          {/* Horizontally stretched localized activity summary grid below the map */}
+          {/* Horizontally stretched localized 31-day activity strip */}
           <div className="shrink-0">
             <ActivityCalendar />
           </div>
         </div>
 
-        {/* RIGHT LIVE TERMINAL ZONE (Approx. 33% width) - Synchronized feeds stack */}
+        {/* RIGHT LIVE TERMINAL ZONE (Approx. 33% width matrix) - Synchronized processing feeds */}
         <div className="flex h-full max-h-full flex-col space-y-5 overflow-hidden lg:col-span-4">
-          {/* Top segment: Live tasks stream validation feed */}
+          {/* Top segment: Live tasks stream telemetry stream */}
           <div className="min-h-0 flex-1">
             <TaskTimeline />
           </div>
-          {/* Bottom segment: Earned credentials achievements log */}
+          {/* Bottom segment: Earned credentials certified archive */}
           <div className="min-h-0 flex-1">
             <CertificatesGrid />
           </div>
