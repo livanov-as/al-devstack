@@ -26,7 +26,7 @@ export default function CertificatesGrid() {
 
   if (loading) {
     return (
-      <div className="h-48 w-full animate-pulse rounded-xl border border-slate-800/50 bg-slate-900/40" />
+      <div className="h-full min-h-48 w-full animate-pulse rounded-xl border border-slate-800/50 bg-slate-900/40" />
     )
   }
 
@@ -34,14 +34,10 @@ export default function CertificatesGrid() {
   const legacyCerts = certs.filter((c) => c.slug && !c.slug.endsWith('-v9'))
 
   return (
-    // If empty, we enforce fixed height matching the empty design grid perfectly
-    <div
-      className={`flex w-full flex-col rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md ${
-        certs.length === 0 ? 'h-40 justify-between' : 'space-y-5'
-      }`}
-    >
-      {/* Component Header (Always stays at the top) */}
-      <div className="flex shrink-0 items-center gap-2">
+    // Enforce h-full to claim exactly 50% height of the right dashboard zone flex column
+    <div className="flex h-full w-full flex-col rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md">
+      {/* Component Header (Always sticky at the top zone) */}
+      <div className="flex shrink-0 items-center gap-2 pb-4">
         <Award className="h-4 w-4 text-emerald-500" />
         <h3 className="font-mono text-sm font-bold tracking-wider text-slate-400 uppercase">
           {t.certificatesTitle}
@@ -49,14 +45,15 @@ export default function CertificatesGrid() {
       </div>
 
       {certs.length === 0 ? (
-        // Flex-1 handles absolute mathematical vertical and horizontal centering inside the remaining space
+        // Absolute absolute mathematical vertical and horizontal centering inside remaining space
         <div className="flex w-full flex-1 items-center justify-center pb-2">
           <p className="text-center font-mono text-xs tracking-wide text-slate-500 italic">
             {t.noCertificates}
           </p>
         </div>
       ) : (
-        <div className="flex-1 space-y-4">
+        // Isolated internal scrollable body container with cyberpunk scrollbar matching timeline aesthetics
+        <div className="scrollbar-thin scrollbar-thumb-slate-800 flex-1 space-y-4 overflow-y-auto pr-1">
           {/* Active Full-Stack Architecture Block (v9 Curriculum) */}
           {activeCerts.length > 0 && (
             <div>
@@ -93,7 +90,7 @@ export default function CertificatesGrid() {
 
           {/* Transferred Infrastructure Block (Legacy Curriculum) */}
           {legacyCerts.length > 0 && (
-            <div className="border-t border-slate-900 pt-2">
+            <div className="border-t border-slate-900 pt-3">
               <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-slate-500 uppercase">
                 // Transferred Infrastructure (Legacy Curriculum)
               </span>
