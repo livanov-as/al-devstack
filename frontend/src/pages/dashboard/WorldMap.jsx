@@ -83,11 +83,16 @@ export default function WorldMap() {
   const handleMouseMove = (e) => {
     if (!mapContainerRef.current) return
     const bounds = mapContainerRef.current.getBoundingClientRect()
-    // Calculate cursor positions safely with absolute offsets
+    const relativeX = e.clientX - bounds.left
+    const relativeY = e.clientY - bounds.top
+
+    // If cursor is near the bottom, flip tooltip upwards to prevent overflow
+    const offsetY = relativeY > bounds.height / 2 ? -75 : 12
+
     setTooltip((prev) => ({
       ...prev,
-      x: e.clientX - bounds.left + 12,
-      y: e.clientY - bounds.top + 12,
+      x: relativeX + 12,
+      y: relativeY + offsetY,
     }))
   }
 
@@ -283,7 +288,7 @@ export default function WorldMap() {
               <Marker key={center.id} coordinates={center.coordinates}>
                 <g
                   transform="translate(-6, -12) scale(0.6)"
-                  className="pointer-events-none animate-bounce"
+                  className="pointer-events-none transition-transform duration-300"
                 >
                   <path
                     d="M6 2h12v4c0 2.21-1.79 4-4 4h-4c-2.21 0-4-1.79-4-4V2z"
