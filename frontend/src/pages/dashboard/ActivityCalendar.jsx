@@ -3,7 +3,7 @@ import { useLanguage } from '../../hooks/useLanguage'
 import { API_BASE_URL } from '../../config'
 
 export default function ActivityCalendar() {
-  const { t, lang } = useLanguage()
+  const { t } = useLanguage()
   const [activityMap, setActivityMap] = useState({})
   const [loading, setLoading] = useState(true)
 
@@ -86,14 +86,13 @@ export default function ActivityCalendar() {
             {t.activityCalendarTitle || 'Activity Matrix'}
           </h3>
           <p className="text-[11px] text-slate-400">
-            {lang === 'ru'
-              ? 'Синхронизация за последние 31 день'
-              : 'Satellite data synchronization for the last 31 days'}
+            {t.activityCalendarSubtitle ||
+              'Satellite data synchronization for the last 31 days'}
           </p>
         </div>
         {/* Compact dashboard timeline footprint indicator */}
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider text-emerald-400 uppercase">
-          31-Day Strip
+          {t.activityCalendarBadge || '31-Day Strip'}
         </span>
       </div>
 
