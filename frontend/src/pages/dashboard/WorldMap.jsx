@@ -192,7 +192,6 @@ export default function WorldMap() {
           >
             <HelpCircle className="h-4 w-4" />
           </button>
-          {/* Pulse animation classes removed, style made static and dimmed for clean finish */}
           <span className="font-mono text-[10px] tracking-widest text-slate-400/80 uppercase">
             • GIS Satellite Uplink Active
           </span>
@@ -235,6 +234,7 @@ export default function WorldMap() {
                         regionId && handleRegionHover(regionId)
                       }
                       onMouseLeave={handleRegionLeave}
+                      onClick={() => regionId && handleRegionHover(regionId)}
                       style={{
                         default: {
                           fill: geoColor,
@@ -283,8 +283,8 @@ export default function WorldMap() {
               }
               onMouseEnter={() => handleRegionHover('secret_island')}
               onMouseLeave={handleRegionLeave}
+              onClick={() => handleRegionHover('secret_island')}
             />
-
             {/* Synchronized vector trophy badges mapping completed sectors */}
             {continentCenters.map((center) => {
               const targetRegion = regions[center.id]
@@ -320,18 +320,33 @@ export default function WorldMap() {
           </g>
         </ComposableMap>
 
-        {/* Floating Tooltip Panel with absolute boundary capture */}
+        {/* Floating Tooltip Panel - Restricted to desktop screens to avoid breaking mobile layouts */}
         {tooltip.visible && (
           <div
             style={{ left: tooltip.x, top: tooltip.y }}
-            className="animate-fade-in pointer-events-none absolute z-50 max-w-xs rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md"
+            className="animate-fade-in pointer-events-none absolute z-50 hidden max-w-xs rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md sm:block"
           >
             {tooltip.content}
           </div>
         )}
       </div>
 
-      {/* Embedded Modal Component Overlay for Legend Specs - Texts mapped to localization system */}
+      {/* Fixed Sticky Mobile Telemetry Bar - Safely renders tapped region stats underneath the map workspace */}
+      {tooltip.visible && (
+        <div className="animate-slide-up mt-3 block rounded-lg border border-slate-800 bg-slate-950/80 p-3 shadow-xl sm:hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">{tooltip.content}</div>
+            <button
+              onClick={handleRegionLeave}
+              className="ml-2 cursor-pointer p-1 text-slate-500 hover:text-slate-300"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Embedded Modal Component Overlay for Legend Specs */}
       {isLegendOpen && (
         <div className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-slate-950/80 p-4 backdrop-blur-xs">
           <div className="relative w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">
