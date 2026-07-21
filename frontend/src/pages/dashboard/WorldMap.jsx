@@ -12,7 +12,7 @@ import { API_BASE_URL } from '../../config'
 import geoData from '../../assets/continents-optimized.json'
 
 // Premium cyberpunk color spectrum scale mapping sync progression
-const colorScale = scaleLinear().domain([0, 30, 70, 100]).range([
+const colorScale = scaleLinear().domain([0, 30, 99, 100]).range([
   '#0f172a', // 0% - Slate 950 deep core
   '#047857', // 1-30% - Emerald 700 early sync
   '#0d9488', // 31-99% - Teal 600 orbital telemetry
@@ -55,7 +55,6 @@ export default function WorldMap() {
   const mapContainerRef = useRef(null)
 
   useEffect(() => {
-    // Establishing real-time GIS configuration matrix with backend telemetry
     fetch(`${API_BASE_URL}/progress/geo-stats`)
       .then((res) => {
         if (!res.ok) throw new Error('GIS Link Offline')
@@ -98,11 +97,15 @@ export default function WorldMap() {
     }))
   }
 
-  const handleRegionLeave = () => {
+  const handleRegionLeave = (e) => {
+    // Enforce isolation to block mobile touch event noise from clearing active node state
+    if (e && e.pointerType === 'touch') return
     setTooltip((prev) => ({ ...prev, visible: false, content: null }))
   }
 
-  const handleRegionHover = (regionId) => {
+  const handleRegionHover = (regionId, e) => {
+    const isTouch = e && (e.pointerType === 'touch' || e.type === 'click')
+
     if (regionId === 'secret_island') {
       const content = (
         <div className="font-mono text-[11px] tracking-wide text-slate-200">
@@ -119,7 +122,12 @@ export default function WorldMap() {
           </div>
         </div>
       )
-      setTooltip((prev) => ({ ...prev, visible: true, content }))
+      setTooltip((prev) => ({
+        visible: true,
+        x: isTouch ? 0 : prev.x,
+        y: isTouch ? 0 : prev.y,
+        content,
+      }))
       return
     }
 
@@ -145,7 +153,12 @@ export default function WorldMap() {
         </div>
       </div>
     )
-    setTooltip((prev) => ({ ...prev, visible: true, content }))
+    setTooltip((prev) => ({
+      visible: true,
+      x: isTouch ? 0 : prev.x,
+      y: isTouch ? 0 : prev.y,
+      content,
+    }))
   }
 
   if (loading) {
@@ -172,7 +185,6 @@ export default function WorldMap() {
 
   const { regions, globalFullStack } = gisData
 
-  // Continuing export default function WorldMap() return block statement cleanly...
   return (
     <div
       className="relative flex h-full w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md"
@@ -209,7 +221,8 @@ export default function WorldMap() {
           }}
           width={800}
           height={380}
-          className="h-full w-full select-none"
+          // Enforced core CSS overrides to permanently disable heavy browser focus outlines on mobile screens
+          className="h-full w-full outline-none select-none focus:outline-none"
         >
           <g transform="translate(0, 20)">
             <Geographies geography={geoData}>
@@ -230,11 +243,13 @@ export default function WorldMap() {
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      onMouseEnter={() =>
-                        regionId && handleRegionHover(regionId)
+                      onMouseEnter={(e) =>
+                        regionId && handleRegionHover(regionId, e)
                       }
-                      onMouseLeave={handleRegionLeave}
-                      onClick={() => regionId && handleRegionHover(regionId)}
+                      onMouseLeave={(e) => handleRegionLeave(e)}
+                      onClick={(e) =>
+                        regionId && handleRegionHover(regionId, e)
+                      }
                       style={{
                         default: {
                           fill: geoColor,
@@ -281,9 +296,9 @@ export default function WorldMap() {
                   ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]'
                   : ''
               }
-              onMouseEnter={() => handleRegionHover('secret_island')}
-              onMouseLeave={handleRegionLeave}
-              onClick={() => handleRegionHover('secret_island')}
+              onMouseEnter={(e) => handleRegionHover('secret_island', e)}
+              onMouseLeave={(e) => handleRegionLeave(e)}
+              onClick={(e) => handleRegionHover('secret_island', e)}
             />
             {/* Synchronized vector trophy badges mapping completed sectors */}
             {continentCenters.map((center) => {
@@ -337,7 +352,13 @@ export default function WorldMap() {
           <div className="flex items-center justify-between">
             <div className="flex-1">{tooltip.content}</div>
             <button
-              onClick={handleRegionLeave}
+              onClick={() =>
+                setTooltip((prev) => ({
+                  ...prev,
+                  visible: false,
+                  content: null,
+                }))
+              }
               className="ml-2 cursor-pointer p-1 text-slate-500 hover:text-slate-300"
             >
               <X className="h-4 w-4" />
