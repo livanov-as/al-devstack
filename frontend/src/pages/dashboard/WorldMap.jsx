@@ -12,7 +12,7 @@ import { API_BASE_URL } from '../../config'
 import geoData from '../../assets/continents-optimized.json'
 
 // Premium cyberpunk color spectrum scale mapping sync progression
-const colorScale = scaleLinear().domain().range([
+const colorScale = scaleLinear().domain([0, 30, 99, 100]).range([
   '#0f172a', // 0% - Slate 950 deep core
   '#047857', // 1-30% - Emerald 700 early sync
   '#0d9488', // 31-99% - Teal 600 orbital telemetry
