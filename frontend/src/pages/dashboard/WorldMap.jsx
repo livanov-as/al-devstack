@@ -12,7 +12,7 @@ import { API_BASE_URL } from '../../config'
 import geoData from '../../assets/continents-optimized.json'
 
 // Premium cyberpunk color spectrum scale mapping sync progression
-const colorScale = scaleLinear().domain([0, 30, 99, 100]).range([
+const colorScale = scaleLinear().domain().range([
   '#0f172a', // 0% - Slate 950 deep core
   '#047857', // 1-30% - Emerald 700 early sync
   '#0d9488', // 31-99% - Teal 600 orbital telemetry
@@ -45,11 +45,14 @@ export default function WorldMap() {
   const [gisData, setGisData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+
+  // Refactored state: added isMobile Modal flag to freeze layout shifts on touch inputs
   const [tooltip, setTooltip] = useState({
     visible: false,
     x: 0,
     y: 0,
     content: null,
+    isMobileModal: false,
   })
   const [isLegendOpen, setIsLegendOpen] = useState(false)
   const mapContainerRef = useRef(null)
@@ -71,7 +74,6 @@ export default function WorldMap() {
       })
   }, [])
 
-  // Memoizing complex telemetry variables to adjust adaptive island masks on progress shifts
   const trackingMetrics = useMemo(() => {
     if (!gisData || !gisData.regions)
       return { earned: 0, blurValue: 8, opacityValue: 0.1 }
@@ -84,7 +86,8 @@ export default function WorldMap() {
   }, [gisData])
 
   const handleMouseMove = (e) => {
-    if (!mapContainerRef.current) return
+    // Completely freeze cursor vector floating tracking if a mobile overlay block is active
+    if (!mapContainerRef.current || tooltip.isMobileModal) return
     const bounds = mapContainerRef.current.getBoundingClientRect()
     const relativeX = e.clientX - bounds.left
     const relativeY = e.clientY - bounds.top
@@ -97,17 +100,28 @@ export default function WorldMap() {
     }))
   }
 
-  const handleRegionLeave = (e) => {
-    // Enforce isolation to block mobile touch event noise from clearing active node state
-    if (e && e.pointerType === 'touch') return
+  const handleRegionLeave = () => {
+    // Standard mouse exits are strictly ignored if an overlay has been locked via touch/tap triggers
+    if (tooltip.isMobileModal) return
     setTooltip((prev) => ({ ...prev, visible: false, content: null }))
   }
 
-  const handleRegionHover = (regionId, e) => {
-    const isTouch = e && (e.pointerType === 'touch' || e.type === 'click')
+  const handleRegionTrigger = (regionId, e) => {
+    if (e) {
+      e.stopPropagation()
+      e.preventDefault()
+    }
 
+    // Explicitly detect mobile viewport or simulated touch interfaces to block buggy hover triggers
+    const isTouchInput =
+      e &&
+      (e.pointerType === 'touch' ||
+        e.type === 'click' ||
+        window.innerWidth < 1024)
+
+    let content = null
     if (regionId === 'secret_island') {
-      const content = (
+      content = (
         <div className="font-mono text-[11px] tracking-wide text-slate-200">
           <strong className="font-bold text-emerald-400">
             {t.fullStackIslandSecretTitle}
@@ -115,50 +129,45 @@ export default function WorldMap() {
           <div className="mt-1 text-slate-400">
             {t.fullStackIslandSecretProgress}: {trackingMetrics.earned} / 7
           </div>
-          <div className="mt-1 border-t border-slate-800 pt-1 text-[10px] text-slate-500 uppercase">
-            {globalFullStack
-              ? t.fullStackIslandSecretUnlocked
-              : t.fullStackIslandSecretLocked}
+        </div>
+      )
+    } else {
+      const r = regions[regionId]
+      if (!r) return
+      const tech = t[`region_${r.id}`] || ''
+      content = (
+        <div className="font-mono text-[11px] tracking-wide text-slate-200">
+          <strong className="mb-1 block border-b border-slate-800/80 pb-1 font-bold text-emerald-400">
+            ⚡ {t.mapTooltipTerritory}: {r.name}
+          </strong>
+          <div className="leading-relaxed text-slate-400">{tech}</div>
+          <div className="mt-1.5 border-t border-slate-800/60 pt-1 text-[10px]">
+            {r.hasCertificate ? (
+              <span className="font-bold text-emerald-400">
+                {t.mapTooltipSynced}: 100%
+              </span>
+            ) : (
+              <span className="text-amber-400">
+                {t.mapTooltipExplored}: {r.percentage}%
+              </span>
+            )}
           </div>
         </div>
       )
-      setTooltip((prev) => ({
-        visible: true,
-        x: isTouch ? 0 : prev.x,
-        y: isTouch ? 0 : prev.y,
-        content,
-      }))
-      return
     }
 
-    const r = regions[regionId]
-    if (!r) return
-    const tech = t[`region_${r.id}`] || ''
-    const content = (
-      <div className="font-mono text-[11px] tracking-wide text-slate-200">
-        <strong className="font-bold text-emerald-400">
-          ⚡ {t.mapTooltipTerritory}: {r.name}
-        </strong>
-        <div className="mt-1 text-slate-400">{tech}</div>
-        <div className="mt-1 border-t border-slate-800 pt-1">
-          {r.hasCertificate ? (
-            <span className="font-bold text-emerald-400">
-              {t.mapTooltipSynced}: 100%
-            </span>
-          ) : (
-            <span className="text-amber-400">
-              {t.mapTooltipExplored}: {r.percentage}%
-            </span>
-          )}
-        </div>
-      </div>
-    )
-    setTooltip((prev) => ({
-      visible: true,
-      x: isTouch ? 0 : prev.x,
-      y: isTouch ? 0 : prev.y,
-      content,
-    }))
+    if (isTouchInput) {
+      // Locked modal overlay state for mobile/tablets to prevent flickers
+      setTooltip({ visible: true, x: 0, y: 0, content, isMobileModal: true })
+    } else {
+      // Fluid hovering for desktop systems
+      setTooltip((prev) => ({
+        ...prev,
+        visible: true,
+        content,
+        isMobileModal: false,
+      }))
+    }
   }
 
   if (loading) {
@@ -185,6 +194,7 @@ export default function WorldMap() {
 
   const { regions, globalFullStack } = gisData
 
+  // Continuing export default function WorldMap() return block statement cleanly...
   return (
     <div
       className="relative flex h-full w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md"
@@ -210,22 +220,28 @@ export default function WorldMap() {
         </div>
       </div>
 
-      {/* Fully fluid scalable responsive vector workspace map canvas container */}
+      {/* Vector workspace map canvas container with absolute boundary focus resets */}
       <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
         <ComposableMap
           projection="geoEqualEarth"
           projectionConfig={{
             scale: 140,
             center: [0, 0],
-            translate: [400, 225],
+            translate: [400, 185],
           }}
           width={800}
           height={380}
-          // Enforced core CSS overrides to permanently disable heavy browser focus outlines on mobile screens
-          className="h-full w-full outline-none select-none focus:outline-none"
+          // Deep inline CSS overrides to wipe out default white focus box ring boundaries completely across platforms
+          className="h-full w-full border-none ring-0 outline-none select-none focus:ring-0 focus:outline-none active:outline-none"
         >
-          <g transform="translate(0, 20)">
-            <Geographies geography={geoData}>
+          <g
+            transform="translate(0, 20)"
+            className="border-none ring-0 outline-none focus:outline-none"
+          >
+            <Geographies
+              geography={geoData}
+              className="border-none ring-0 outline-none focus:outline-none"
+            >
               {({ geographies }) =>
                 geographies.map((geo) => {
                   const continentName =
@@ -244,11 +260,11 @@ export default function WorldMap() {
                       key={geo.rsmKey}
                       geography={geo}
                       onMouseEnter={(e) =>
-                        regionId && handleRegionHover(regionId, e)
+                        regionId && handleRegionTrigger(regionId, e)
                       }
-                      onMouseLeave={(e) => handleRegionLeave(e)}
+                      onMouseLeave={handleRegionLeave}
                       onClick={(e) =>
-                        regionId && handleRegionHover(regionId, e)
+                        regionId && handleRegionTrigger(regionId, e)
                       }
                       style={{
                         default: {
@@ -279,7 +295,6 @@ export default function WorldMap() {
                 })
               }
             </Geographies>
-
             {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
             <path
               d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
@@ -296,10 +311,11 @@ export default function WorldMap() {
                   ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]'
                   : ''
               }
-              onMouseEnter={(e) => handleRegionHover('secret_island', e)}
-              onMouseLeave={(e) => handleRegionLeave(e)}
-              onClick={(e) => handleRegionHover('secret_island', e)}
+              onMouseEnter={(e) => handleRegionTrigger('secret_island', e)}
+              onMouseLeave={handleRegionLeave}
+              onClick={(e) => handleRegionTrigger('secret_island', e)}
             />
+
             {/* Synchronized vector trophy badges mapping completed sectors */}
             {continentCenters.map((center) => {
               const targetRegion = regions[center.id]
@@ -335,37 +351,39 @@ export default function WorldMap() {
           </g>
         </ComposableMap>
 
-        {/* Floating Tooltip Panel - Restricted to desktop screens to avoid breaking mobile layouts */}
-        {tooltip.visible && (
+        {/* Desktop Fluid Floating Tooltip Panel (Only visible on mice-driven viewports) */}
+        {tooltip.visible && !tooltip.isMobileModal && (
           <div
             style={{ left: tooltip.x, top: tooltip.y }}
-            className="animate-fade-in pointer-events-none absolute z-50 hidden max-w-xs rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md sm:block"
+            className="animate-fade-in pointer-events-none absolute z-50 hidden max-w-xs rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md lg:block"
           >
             {tooltip.content}
           </div>
         )}
-      </div>
 
-      {/* Fixed Sticky Mobile Telemetry Bar - Safely renders tapped region stats underneath the map workspace */}
-      {tooltip.visible && (
-        <div className="animate-slide-up mt-3 block rounded-lg border border-slate-800 bg-slate-950/80 p-3 shadow-xl sm:hidden">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">{tooltip.content}</div>
-            <button
-              onClick={() =>
-                setTooltip((prev) => ({
-                  ...prev,
-                  visible: false,
-                  content: null,
-                }))
-              }
-              className="ml-2 cursor-pointer p-1 text-slate-500 hover:text-slate-300"
-            >
-              <X className="h-4 w-4" />
-            </button>
+        {/* Universal Sticky Touch Modal Panel (Fires on phones, tablet screens, or small developer panels) */}
+        {tooltip.visible && tooltip.isMobileModal && (
+          <div className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs lg:hidden">
+            <div className="relative w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-2xl">
+              <button
+                onClick={() =>
+                  setTooltip({
+                    visible: false,
+                    x: 0,
+                    y: 0,
+                    content: null,
+                    isMobileModal: false,
+                  })
+                }
+                className="absolute top-3 right-3 cursor-pointer p-1 text-slate-500 hover:text-slate-300"
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <div className="pr-4">{tooltip.content}</div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Embedded Modal Component Overlay for Legend Specs */}
       {isLegendOpen && (
