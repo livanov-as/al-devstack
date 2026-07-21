@@ -57,12 +57,12 @@ export const translations = {
     certLinkOffline: 'Certificates Link Offline',
 
     // Flat Region Technology Names
-    region_europe: 'Responsive Web Design',
-    region_asia: 'JavaScript Algorithms & Data Structures',
-    region_africa: 'Front-End Development Libraries',
-    region_north_america: 'Scientific Computing with Python',
-    region_south_america: 'Relational Databases',
-    region_australia_oceania: 'Back-End Development and APIs',
+    region_europe: 'Responsive Web Design Certification',
+    region_asia: 'JavaScript Certification',
+    region_africa: 'Front-End Development Libraries Certification',
+    region_north_america: 'Python Certification',
+    region_south_america: 'Relational Databases Certification',
+    region_australia_oceania: 'Back-End Development and APIs Certification',
   },
   ru: {
     // Заголовки компонентов
@@ -121,11 +121,11 @@ export const translations = {
     certLinkOffline: 'Связь с базой сертификатов оффлайн',
 
     // Плоские ключи технологий регионов
-    region_europe: 'Responsive Web Design',
-    region_asia: 'JavaScript Algorithms & Data Structures',
-    region_africa: 'Front-End Development Libraries',
-    region_north_america: 'Scientific Computing with Python',
-    region_south_america: 'Relational Databases',
-    region_australia_oceania: 'Back-End Development and APIs',
+    region_europe: 'Responsive Web Design Certification',
+    region_asia: 'JavaScript Certification',
+    region_africa: 'Front-End Development Libraries Certification',
+    region_north_america: 'Python Certification',
+    region_south_america: 'Relational Databases Certification',
+    region_australia_oceania: 'Back-End Development and APIs Certification',
   },
 }
