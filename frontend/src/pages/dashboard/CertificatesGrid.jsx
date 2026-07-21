@@ -9,9 +9,11 @@ export default function CertificatesGrid() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Isolated secure fetch workflow routing directly to active database configurations
     fetch(`${API_BASE_URL}/certificates`)
       .then((res) => {
-        if (!res.ok) throw new Error('Certificates Link Offline')
+        if (!res.ok)
+          throw new Error(t.certLinkOffline || 'Certificates Link Offline')
         return res.json()
       })
       .then((data) => {
@@ -22,7 +24,7 @@ export default function CertificatesGrid() {
         console.warn(err.message)
         setLoading(false)
       })
-  }, [])
+  }, [t])
 
   if (loading) {
     return (
@@ -30,13 +32,14 @@ export default function CertificatesGrid() {
     )
   }
 
+  // Segmenting credentials array dynamically using semantic curricular version targets
   const activeCerts = certs.filter((c) => c.slug && c.slug.endsWith('-v9'))
   const legacyCerts = certs.filter((c) => c.slug && !c.slug.endsWith('-v9'))
 
   return (
-    // Enforce h-full to claim exactly 50% height of the right dashboard zone flex column
+    // Enforce h-full to claim exactly 50% height of the right dashboard zone flex column matrix
     <div className="flex h-full w-full flex-col rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md">
-      {/* Component Header (Always sticky at the top zone) */}
+      {/* Component Header (Always sticky at the top zone boundary) */}
       <div className="flex shrink-0 items-center gap-2 pb-4">
         <Award className="h-4 w-4 text-emerald-500" />
         <h3 className="font-mono text-sm font-bold tracking-wider text-slate-400 uppercase">
@@ -58,7 +61,7 @@ export default function CertificatesGrid() {
           {activeCerts.length > 0 && (
             <div>
               <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-emerald-500/70 uppercase">
-                // Active Full-Stack Architecture (v9)
+                {t.certActiveArchitecture}
               </span>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {activeCerts.map((cert) => (
@@ -92,7 +95,7 @@ export default function CertificatesGrid() {
           {legacyCerts.length > 0 && (
             <div className="border-t border-slate-900 pt-3">
               <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-slate-500 uppercase">
-                // Transferred Infrastructure (Legacy Curriculum)
+                {t.certLegacyInfrastructure}
               </span>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                 {legacyCerts.map((cert) => (

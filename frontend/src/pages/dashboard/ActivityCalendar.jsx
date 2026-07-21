@@ -12,7 +12,6 @@ export default function ActivityCalendar() {
     // Automatically detect browser timezone to prevent localized date shifting
     const clientTimezone =
       Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-
     fetch(
       `${API_BASE_URL}/progress/calendar?timezone=${encodeURIComponent(clientTimezone)}`,
     )
@@ -53,11 +52,10 @@ export default function ActivityCalendar() {
       const offset = targetDate.getTimezoneOffset()
       const localZoneDate = new Date(targetDate.getTime() - offset * 60 * 1000)
       const dateStringKey = localZoneDate.toISOString().split('T')[0]
-
       const taskCount = activityMap[dateStringKey] || 0
+
       result.push({ date: dateStringKey, count: taskCount })
     }
-
     return result
   }, [activityMap])
 
@@ -83,26 +81,25 @@ export default function ActivityCalendar() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-col gap-0.5">
           <h3 className="text-xs font-semibold tracking-wide text-slate-200 uppercase">
-            {t.activityCalendarTitle || 'Activity Matrix'}
+            {t.activityCalendarTitle}
           </h3>
           <p className="text-[11px] text-slate-400">
-            {t.activityCalendarSubtitle ||
-              'Satellite data synchronization for the last 31 days'}
+            {t.activityCalendarSubtitle}
           </p>
         </div>
         {/* Compact dashboard timeline footprint indicator */}
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider text-emerald-400 uppercase">
-          {t.activityCalendarBadge || '31-Day Strip'}
+          {t.activityCalendarBadge}
         </span>
       </div>
 
-      {/* Grid wrapper transformed into an elegant, dense horizontal baseline strip */}
-      <div className="scrollbar-thin scrollbar-thumb-slate-800 mt-5 overflow-x-auto pb-1">
+      {/* Grid wrapper with hidden scrollbars for clean responsive mobile visualization */}
+      <div className="mt-5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex min-w-max gap-1">
           {calendarDays.map((day) => (
             <div
               key={day.date}
-              title={`${day.date}: ${day.count > 0 ? `${day.count} ${t.tasks || 'tasks'}` : t.noTasks || 'no tasks'}`}
+              title={`${day.date}: ${day.count > 0 ? `${day.count} ${t.tasks}` : t.noTasks}`}
               className={`h-3 w-3 cursor-pointer rounded-xs border transition-all duration-150 hover:z-10 hover:scale-125 ${getColorClass(day.count)}`}
             />
           ))}
@@ -111,13 +108,13 @@ export default function ActivityCalendar() {
 
       {/* Cyberpunk synchronization status matrix legend footprint */}
       <div className="mt-4 flex items-center justify-end gap-1.5 font-mono text-[10px] text-slate-500">
-        <span>{t.less || 'Less'}</span>
+        <span>{t.less}</span>
         <div className="h-2.5 w-2.5 rounded-xs border border-slate-700/50 bg-slate-800" />
         <div className="h-2.5 w-2.5 rounded-xs bg-emerald-900" />
         <div className="h-2.5 w-2.5 rounded-xs bg-emerald-700" />
         <div className="h-2.5 w-2.5 rounded-xs bg-emerald-500" />
         <div className="h-2.5 w-2.5 rounded-xs bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]" />
-        <span>{t.more || 'More'}</span>
+        <span>{t.more}</span>
       </div>
     </div>
   )

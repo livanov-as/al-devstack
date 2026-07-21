@@ -32,12 +32,10 @@ export default function TaskTimeline() {
         // Safe backend array verification mapping to data.tasks structure
         const rawTasks =
           data && Array.isArray(data.tasks) ? data.tasks : fallbackTasks
-
         // Sort records by timestamp and restrict feed to the last 10 entries to match layout boundaries
         const sortedData = rawTasks
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 10)
-
         setTasks(sortedData)
         setIsMocked(!data || !Array.isArray(data.tasks))
         setLoading(false)
@@ -110,10 +108,10 @@ export default function TaskTimeline() {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
             <h3 className="text-sm font-semibold tracking-wide text-slate-200 uppercase">
-              {t.timelineTitle}
+              {t.taskTimelineTitle}
             </h3>
           </div>
-          <p className="text-xs text-slate-400">{t.timelineSub}</p>
+          <p className="text-xs text-slate-400">{t.activityCalendarSubtitle}</p>
         </div>
         <span
           className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider uppercase ${
@@ -126,8 +124,8 @@ export default function TaskTimeline() {
         </span>
       </div>
 
-      {/* Task List Container with Cyberpunk Fade-Out Gradient Mask */}
-      <div className="scrollbar-thin mt-4 flex-1 space-y-3 overflow-y-auto mask-[linear-gradient(to_bottom,white_85%,transparent_100%)] pr-1">
+      {/* Task List Container - Absolute blur/gradient blocks removed entirely to fix task visibility */}
+      <div className="scrollbar-thin mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
         {tasks.length === 0 ? (
           <p className="py-8 text-center font-mono text-xs text-slate-500">
             No tasks recorded
@@ -135,7 +133,6 @@ export default function TaskTimeline() {
         ) : (
           tasks.map((task) => {
             const { label, style } = resolveCategoryDetails(task.category)
-
             // Shared styling for both link and fallback containers
             const containerStyle =
               'group flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 transition-all duration-150 hover:border-slate-700/60 hover:bg-slate-800/30 text-left w-full block select-none'
