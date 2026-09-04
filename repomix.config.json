@@ -1,5 +1,5 @@
 {
   "output": {
-    "topFilesHeader": "### Project Rules:\n1. Keep existing project style, architecture, and formatting.\n2. Modify and output ONLY files we are currently working on. Do not touch other logic.\n3. Write all comments in code strictly in English, following the project's technical style.\n4. Ensure code is clean, production-ready, and formatted for an immediate git push (no placeholders/temp code)."
+    "headerText": "### Project Rules:\n1. Keep existing project style, architecture, and formatting.\n2. Modify and output ONLY files we are currently working on. Do not touch other logic.\n3. Write all comments in code strictly in English, following the project's technical style.\n4. Ensure code is clean, production-ready, and formatted for an immediate git push (no placeholders/temp code).\n5. Production Environment Matrix:\n   - Frontend: Hosted on Vercel.\n   - Backend: Hosted on Railway.\n   - Database: Hosted on MongoDB Atlas (cluster name: 'al-devstack').\n   - Parser: Executed via GitHub Actions workflows."
   }
 }
