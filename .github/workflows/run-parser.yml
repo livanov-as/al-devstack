@@ -2,9 +2,20 @@ name: FreeCodeCamp Profile Parser Lifecycle
 
 on:
   schedule:
-    # Triggers the workflow execution weekly every Sunday at 00:00 UTC
+    # 1. Weekly Execution: Every Sunday at 00:00 UTC
     - cron: '0 0 * * 0'
-  workflow_dispatch: # Allows manual trigger from the GitHub Actions tab
+    # 2. Monthly Execution: Every 1st day of the month at 03:00 UTC
+    - cron: '0 3 1 * *'
+  workflow_dispatch:
+    inputs:
+      parser_mode:
+        description: 'Select operational database scanning profile mode'
+        required: true
+        default: 'INCREMENTAL'
+        type: choice
+        options:
+          - INCREMENTAL
+          - TOTAL
 
 jobs:
   run-parser:
@@ -24,11 +35,30 @@ jobs:
         run: |
           cd parser
           pip install -r requirements.txt
-          playwright install chromium --with-deps
+          npx playwright install chromium
 
+      # STEP A: Initialize default runtime execution profile mode
+      - name: Set Default Parser Mode
+        run: echo "RUN_MODE=INCREMENTAL" >> $GITHUB_ENV
+
+      # STEP B: Handle manual workflow dispatch input choice override sequence
+      - name: Handle Manual Override
+        if: github.event_name == 'workflow_dispatch'
+        run: echo "RUN_MODE=${{ github.event.inputs.parser_mode }}" >> $GITHUB_ENV
+
+      # STEP C: Handle automated monthly cron schedule trigger intersection
+      - name: Handle Monthly Scheduled Run
+        if: github.event_name == 'schedule' && github.event.schedule == '0 3 1 * *'
+        run: echo "RUN_MODE=TOTAL" >> $GITHUB_ENV
+
+      # STEP D: Launch core scraper process utilizing finalized context variables
       - name: Execute Scraper Pipeline
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
+          CACHE_SECRET_TOKEN: ${{ secrets.CACHE_SECRET_TOKEN }}
+          PARSER_MODE: ${{ env.RUN_MODE }}
+          # Active infrastructure deployment route mapping targets
+          BACKEND_INTERNAL_URL: 'https://al-devstack-production.up.railway.app'
         run: |
           cd parser
           python main.py
