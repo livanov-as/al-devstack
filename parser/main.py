@@ -88,7 +88,9 @@ async def parse_timeline_page(page) -> list:
 
 
 async def flush_backend_cache():
-    """Asynchronously triggers the backend cache flush webhook using the protected secret token."""
+    """Asynchronously triggers the backend cache flush webhook using the protected secret token.
+    Safe failure execution context wrapped to prevent pipeline degradation if the backend is down.
+    """
     if not CACHE_SECRET_TOKEN:
         print(" ⚠️ Cache token missing in environment. Webhook dispatch aborted.")
         return
@@ -108,10 +110,17 @@ async def flush_backend_cache():
             )
             if response.status_code == 200:
                 print(" 🚀 Cache cleared successfully. Matrix synchronization complete.")
+            elif response.status_code == 404:
+                print(f" ⚠️ Webhook target route missing (404 Not Found) at {flush_endpoint}. Skipping cache flush.")
             else:
-                print(f" ⚠️ Webhook synchronization returned status code: {response.status_code}")
+                print(f" ⚠️ Webhook synchronization returned unexpected status code: {response.status_code}")
+    except httpx.ConnectError:
+        print(" ⚠️ Webhook Network Exception: Backend server is unreachable (Offline/Down). Pipeline preserved.")
+    except httpx.TimeoutException:
+        print(" ⚠️ Webhook Timeout Exception: Connection timed out after 10.0 seconds. Pipeline preserved.")
     except Exception as e:
-        print(f" ❌ Failed to dispatch backend cache-flush trigger payload: {str(e)}")
+        print(f" ⚠️ Webhook Unknown Exception: Failed to dispatch cache-flush trigger payload ({str(e)}). Pipeline preserved.")
+
 
 async def main():
     print(" 🚀 Starting total asynchronous HTML scraper lifecycle (fCC v9 compliance)...")
