@@ -3,6 +3,9 @@ import { Progress } from '../models/Progress.js'
 import { Certificate } from '../models/Certificate.js'
 import { GEO_MAPPING, GLOBAL_TRIGGER_SLUG } from '../config/constants.js'
 
+// --- Global In-Memory Cache Storage ---
+let geoStatsCache = null
+
 const router = express.Router()
 
 /**
@@ -18,7 +21,13 @@ router.get('/progress/calendar', async (req, res) => {
     startDate.setDate(startDate.getDate() - targetDays)
 
     // Fallback to UTC if the frontend client timezone option is missing
-    const clientTimezone = req.query.timezone || 'UTC'
+    let clientTimezone = req.query.timezone || 'UTC'
+
+    // Secure timezone injection validation protecting MongoDB aggregation pipelines against DoS
+    const timezoneRegex = /^[A-Za-z0-9_\-\/]+$/
+    if (!timezoneRegex.test(clientTimezone)) {
+      clientTimezone = 'UTC'
+    }
 
     // Execute aggregation pipeline leveraging MongoDB index on { date: -1 }
     const aggregation = await Progress.aggregate([
@@ -76,19 +85,46 @@ router.get('/progress/timeline', async (req, res) => {
 /**
  * GET /api/progress/geo-stats
  * Aggregates freeCodeCamp v9 progress statistics mapped by geographical regions.
+ * Implements high-performance MongoDB Atlas pipeline aggregation with In-Memory caching mechanisms.
  */
 router.get('/progress/geo-stats', async (req, res) => {
   try {
-    const progressList = await Progress.find({}).lean()
+    // 1. Check if finalized dataset is already compiled inside system memory
+    if (geoStatsCache) {
+      res.setHeader('X-Cache', 'HIT')
+      return res.json(geoStatsCache)
+    }
+
+    // 2. Fetch earned credentials to verify milestones and global full-stack statuses
     const certsList = await Certificate.find({}).lean()
     const earnedCertSlugs = new Set(certsList.map((c) => c.slug))
     const hasGlobalFullStack = earnedCertSlugs.has(GLOBAL_TRIGGER_SLUG)
-    const stats = {}
 
+    // 3. Construct dynamic database aggregation facets utilizing exact string matches
+    const facetPipeline = {}
     for (const [key, config] of Object.entries(GEO_MAPPING)) {
-      const completedTasksCount = progressList.filter((item) =>
-        config.matchRegex.test(item.category || ''),
-      ).length
+      facetPipeline[key] = [
+        {
+          $match: {
+            category: { $in: config.sectionSlugs },
+          },
+        },
+        {
+          $count: 'count',
+        },
+      ]
+    }
+
+    // Execute heavy calculations directly on MongoDB Atlas server layer via optimized indices
+    const [aggregationResult] = await Progress.aggregate([
+      { $facet: facetPipeline },
+    ])
+
+    // 4. Map calculated scalar numbers into finalized GIS structural entities
+    const stats = {}
+    for (const [key, config] of Object.entries(GEO_MAPPING)) {
+      const dbFacetRows = aggregationResult && aggregationResult[key]
+      const completedTasksCount = dbFacetRows && dbFacetRows[0] ? dbFacetRows[0].count : 0
 
       const hasRegionCertificate = config.certSlugs.some((slug) =>
         earnedCertSlugs.has(slug),
@@ -114,10 +150,14 @@ router.get('/progress/geo-stats', async (req, res) => {
       }
     }
 
-    res.json({
+    // 5. Commit compiled data object into memory architecture matrix
+    geoStatsCache = {
       regions: stats,
       globalFullStack: hasGlobalFullStack,
-    })
+    }
+
+    res.setHeader('X-Cache', 'MISS')
+    res.json(geoStatsCache)
   } catch (error) {
     console.error('GIS aggregation error:', error)
     res.status(500).json({ error: 'Internal Server Error' })
@@ -136,6 +176,34 @@ router.get('/certificates', async (req, res) => {
     console.error('Error fetching certificates:', error)
     res.status(500).json({ error: 'Internal Server Error' })
   }
+})
+
+/**
+ * POST /api/progress/cache-flush
+ * Secure endpoint utilized by the parser execution lifecycle to invalidate local memory caches.
+ * Validates incoming payloads leveraging the system CACHE_SECRET_TOKEN.
+ */
+router.post('/progress/cache-flush', (req, res) => {
+  const secretToken = process.env.CACHE_SECRET_TOKEN
+
+  if (!secretToken) {
+    return res.status(500).json({ error: 'Cache secret token is not configured on server' })
+  }
+
+  // Extract token from both Bearer Authorization header or JSON request body payload
+  const authHeader = req.headers.authorization
+  const tokenFromHeader = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null
+  const tokenFromBody = req.body && req.body.token
+
+  if (tokenFromHeader !== secretToken && tokenFromBody !== secretToken) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid cache flush security token signature' })
+  }
+
+  // Invalidate local in-memory dataset mapping
+  geoStatsCache = null
+  console.log(' ♻️ In-Memory regional GIS stats cache successfully cleared via web-hook trigger.')
+
+  res.json({ success: true, message: 'Cache invalidated successfully' })
 })
 
 export default router
