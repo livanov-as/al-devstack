@@ -9,7 +9,7 @@ let geoStatsCache = null
 const router = express.Router()
 
 /**
- * GET /api/progress/calendar
+ * GET /progress/calendar
  * Aggregates and groups user activity history over the last 31 days directly in the database.
  * Supports dynamic client timezone alignment passed via query params to prevent date shifts.
  * Returns a lightweight map object: { "YYYY-MM-DD": count, ... }
@@ -64,7 +64,7 @@ router.get('/progress/calendar', async (req, res) => {
 })
 
 /**
- * GET /api/progress/timeline
+ * GET /progress/timeline
  * Retrieves exactly the 10 most recent tasks for the streaming feed with explicit URL projection.
  */
 router.get('/progress/timeline', async (req, res) => {
@@ -83,7 +83,7 @@ router.get('/progress/timeline', async (req, res) => {
 })
 
 /**
- * GET /api/progress/geo-stats
+ * GET /progress/geo-stats
  * Aggregates freeCodeCamp v9 progress statistics mapped by geographical regions.
  * Implements high-performance MongoDB Atlas pipeline aggregation with In-Memory caching mechanisms.
  */
@@ -165,7 +165,7 @@ router.get('/progress/geo-stats', async (req, res) => {
 })
 
 /**
- * GET /api/certificates
+ * GET /certificates
  * Retrieves the list of earned certificates for the CertificatesGrid widget.
  */
 router.get('/certificates', async (req, res) => {
@@ -179,7 +179,7 @@ router.get('/certificates', async (req, res) => {
 })
 
 /**
- * POST /api/progress/cache-flush
+ * POST /progress/cache-flush
  * Secure endpoint utilized by the parser execution lifecycle to invalidate local memory caches.
  * Validates incoming payloads leveraging the system CACHE_SECRET_TOKEN.
  */
