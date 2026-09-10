@@ -35,7 +35,7 @@ jobs:
         run: |
           cd parser
           pip install -r requirements.txt
-          npx playwright install chromium
+          playwright install chromium
 
       # STEP A: Initialize default runtime execution profile mode
       - name: Set Default Parser Mode
