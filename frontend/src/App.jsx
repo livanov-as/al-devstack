@@ -30,12 +30,12 @@ function Header() {
 
 function DashboardContent() {
   return (
-    // Re-adjusted padding boundaries (p-4 md:p-6) maximizing screen usage with seamless viewport calculation
-    <div className="mx-auto h-[calc(100vh-64px)] max-w-full overflow-hidden p-4 md:p-6">
-      {/* Dynamic layout structure highly responsive across multiple monitor display configurations */}
-      <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-5 pb-2 lg:grid-cols-12">
+    // Removed strict desktop height limits on small screens to allow dynamic scrolling
+    <div className="mx-auto h-full min-h-screen overflow-y-auto p-4 md:p-6 xl:h-[calc(100vh-64px)] xl:min-h-0 xl:overflow-hidden">
+      {/* Upgraded grid system breakpoint to xl for tablet optimization and eliminated gaps */}
+      <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-5 pb-2 xl:grid-cols-12">
         {/* LEFT INFOGRAPHICS ZONE (Approx. 66% width matrix) - Map & Calendar cluster */}
-        <div className="flex h-full flex-col space-y-5 overflow-hidden lg:col-span-8">
+        <div className="flex h-full flex-col space-y-5 xl:col-span-8 xl:overflow-hidden">
           {/* Main geographic progress tracking engine mapping workspace */}
           <div className="flex min-h-0 flex-1 flex-col">
             <WorldMap />
@@ -47,7 +47,7 @@ function DashboardContent() {
         </div>
 
         {/* RIGHT LIVE TERMINAL ZONE (Approx. 33% width matrix) - Synchronized processing feeds */}
-        <div className="flex h-full max-h-full flex-col space-y-5 overflow-hidden lg:col-span-4">
+        <div className="flex h-full flex-col space-y-5 xl:col-span-4 xl:max-h-full xl:overflow-hidden">
           {/* Top segment: Live tasks stream telemetry stream */}
           <div className="min-h-0 flex-1">
             <TaskTimeline />
@@ -65,7 +65,7 @@ function DashboardContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <div className="h-screen w-screen overflow-hidden bg-[#020617] text-slate-100 antialiased selection:bg-emerald-500/20 selection:text-emerald-400">
+      <div className="h-full min-h-screen w-screen overflow-x-hidden bg-[#020617] text-slate-100 antialiased selection:bg-emerald-500/20 selection:text-emerald-400 xl:h-screen xl:overflow-hidden">
         <Header />
         <main>
           <DashboardContent />

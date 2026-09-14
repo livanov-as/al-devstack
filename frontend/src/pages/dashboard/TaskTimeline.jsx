@@ -16,23 +16,20 @@ const fallbackTasks = Array.from({ length: 10 }, (_, i) => ({
 }))
 
 export default function TaskTimeline() {
-  const { t, lang } = useLanguage() // Extracted lang property for localized date parsing
+  const { t, lang } = useLanguage()
   const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
   const [isMocked, setIsMocked] = useState(false)
 
   useEffect(() => {
-    // Adjusted routing path targeting the new segregated timeline endpoint
     fetch(`${API_BASE_URL}/progress/timeline`)
       .then((res) => {
         if (!res.ok) throw new Error('API Error')
         return res.json()
       })
       .then((data) => {
-        // Safe backend array verification mapping to data.tasks structure
         const rawTasks =
           data && Array.isArray(data.tasks) ? data.tasks : fallbackTasks
-        // Sort records by timestamp and restrict feed to the last 10 entries to match layout boundaries
         const sortedData = rawTasks
           .sort((a, b) => new Date(b.date) - new Date(a.date))
           .slice(0, 10)
@@ -51,7 +48,6 @@ export default function TaskTimeline() {
       })
   }, [])
 
-  // Parses individual category slugs into uniform UI tech badges
   const resolveCategoryDetails = (slug) => {
     const normSlug = slug?.toLowerCase() || ''
     if (normSlug.includes('python') || normSlug.includes('parser')) {
@@ -76,7 +72,6 @@ export default function TaskTimeline() {
     }
   }
 
-  // Generates precise user-friendly localized date and time stamp
   const formatTime = (isoString) => {
     try {
       const dateObj = new Date(isoString)
@@ -91,27 +86,29 @@ export default function TaskTimeline() {
     }
   }
 
-  // Loading Phase (Fully adapted to parent container height boundaries)
   if (loading) {
     return (
-      <div className="flex h-full w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 py-12">
+      <div className="flex h-full min-h-65 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-emerald-500" />
       </div>
     )
   }
 
   return (
-    <div className="flex h-full w-full flex-col rounded-xl border border-slate-800/80 bg-slate-900/60 p-6 shadow-2xl backdrop-blur-md">
+    // Re-adjusted padding from p-6 to p-4 sm:p-6 and enforced min-h-[260px] to preserve structure on iPhone SE
+    <div className="flex h-full min-h-65 w-full flex-col rounded-xl border border-slate-800/80 bg-slate-900/60 p-4 shadow-2xl backdrop-blur-md sm:p-6">
       {/* Header Info Block */}
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800/60 pb-4">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
-            <h3 className="text-sm font-semibold tracking-wide text-slate-200 uppercase">
+            <h3 className="text-xs font-semibold tracking-wide text-slate-200 uppercase sm:text-sm">
               {t.taskTimelineTitle}
             </h3>
           </div>
-          <p className="text-xs text-slate-400">{t.activityCalendarSubtitle}</p>
+          <p className="text-[10px] text-slate-400 sm:text-xs">
+            {t.activityCalendarSubtitle}
+          </p>
         </div>
         <span
           className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider uppercase ${
@@ -124,7 +121,7 @@ export default function TaskTimeline() {
         </span>
       </div>
 
-      {/* Task List Container - Absolute blur/gradient blocks removed entirely to fix task visibility */}
+      {/* Task List Container */}
       <div className="scrollbar-thin mt-4 flex-1 space-y-3 overflow-y-auto pr-1">
         {tasks.length === 0 ? (
           <p className="py-8 text-center font-mono text-xs text-slate-500">
@@ -133,11 +130,9 @@ export default function TaskTimeline() {
         ) : (
           tasks.map((task) => {
             const { label, style } = resolveCategoryDetails(task.category)
-            // Shared styling for both link and fallback containers
             const containerStyle =
               'group flex items-start gap-3 rounded-lg border border-slate-800 bg-slate-950/40 p-3 transition-all duration-150 hover:border-slate-700/60 hover:bg-slate-800/30 text-left w-full block select-none'
 
-            // Target wrapper definition based on task URL accessibility mapping
             const CardWrapper = task.url ? 'a' : 'div'
             const formattedUrl = task.url
               ? task.url.startsWith('http://') ||
@@ -165,22 +160,21 @@ export default function TaskTimeline() {
                     <CheckCircle2 className="h-4 w-4 text-emerald-500 transition-transform group-hover:scale-110" />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    {/* Maps strictly to task_name from database schema */}
                     <div className="flex items-start justify-between gap-2">
-                      <p className="line-clamp-2 font-mono text-xs font-medium text-slate-300 transition-colors group-hover:text-slate-200">
+                      {/* Tuned task names size matrix for 320px screens compatibility */}
+                      <p className="line-clamp-2 font-mono text-[10px] font-medium text-slate-300 transition-colors group-hover:text-slate-200 sm:text-xs">
                         {task.task_name}
                       </p>
                       {task.url && (
                         <ExternalLink className="mt-0.5 h-3 w-3 shrink-0 text-slate-600 opacity-0 transition-all duration-150 group-hover:text-slate-400 group-hover:opacity-100" />
                       )}
                     </div>
-                    <div className="flex items-center justify-between text-[10px]">
+                    <div className="flex items-center justify-between text-[9px] sm:text-[10px]">
                       <span
-                        className={`rounded border px-2 py-0.5 font-mono text-[9px] font-semibold tracking-wider uppercase ${style}`}
+                        className={`rounded border px-2 py-0.5 font-mono text-[8px] font-semibold tracking-wider uppercase sm:text-[9px] ${style}`}
                       >
                         {label}
                       </span>
-                      {/* Maps strictly to date from database schema */}
                       <span className="font-mono text-slate-500 transition-colors group-hover:text-slate-400">
                         {formatTime(task.date)}
                       </span>

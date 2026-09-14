@@ -11,7 +11,7 @@ import { Globe, ShieldAlert, Radio, HelpCircle, X } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
 import geoData from '../../assets/continents-optimized.json'
 
-// Premium cyberpunk color spectrum scale mapping sync progression
+// Premium cyberpunk color spectrum scale mapping sync progression with strict domain matching
 const colorScale = scaleLinear().domain([0, 30, 99, 100]).range([
   '#0f172a', // 0% - Slate 950 deep core
   '#047857', // 1-30% - Emerald 700 early sync
@@ -86,7 +86,6 @@ export default function WorldMap() {
   }, [gisData])
 
   const handleMouseMove = (e) => {
-    // Completely freeze cursor vector floating tracking if a mobile overlay block is active
     if (!mapContainerRef.current || tooltip.isMobileModal) return
     const bounds = mapContainerRef.current.getBoundingClientRect()
     const relativeX = e.clientX - bounds.left
@@ -101,7 +100,6 @@ export default function WorldMap() {
   }
 
   const handleRegionLeave = () => {
-    // Standard mouse exits are strictly ignored if an overlay has been locked via touch/tap triggers
     if (tooltip.isMobileModal) return
     setTooltip((prev) => ({ ...prev, visible: false, content: null }))
   }
@@ -112,7 +110,6 @@ export default function WorldMap() {
       e.preventDefault()
     }
 
-    // Explicitly detect mobile viewport or simulated touch interfaces to block buggy hover triggers
     const isTouchInput =
       e &&
       (e.pointerType === 'touch' ||
@@ -132,7 +129,7 @@ export default function WorldMap() {
         </div>
       )
     } else {
-      const r = regions[regionId]
+      const r = gisData?.regions?.[regionId]
       if (!r) return
       const tech = t[`region_${r.id}`] || ''
       content = (
@@ -157,10 +154,8 @@ export default function WorldMap() {
     }
 
     if (isTouchInput) {
-      // Locked modal overlay state for mobile/tablets to prevent flickers
       setTooltip({ visible: true, x: 0, y: 0, content, isMobileModal: true })
     } else {
-      // Fluid hovering for desktop systems
       setTooltip((prev) => ({
         ...prev,
         visible: true,
@@ -172,7 +167,7 @@ export default function WorldMap() {
 
   if (loading) {
     return (
-      <div className="flex h-full w-full flex-1 items-center justify-center rounded-xl border border-slate-800/60 bg-slate-900/20 backdrop-blur-md">
+      <div className="flex min-h-45 w-full flex-1 items-center justify-center rounded-xl border border-slate-800/60 bg-slate-900/20 backdrop-blur-md">
         <div className="flex flex-col items-center justify-center gap-2 text-center">
           <Radio className="h-5 w-5 animate-pulse text-emerald-500" />
           <p className="font-mono text-xs text-slate-400">{t.mapLoading}</p>
@@ -183,7 +178,7 @@ export default function WorldMap() {
 
   if (error || !gisData) {
     return (
-      <div className="flex h-full w-full flex-1 items-center justify-center rounded-xl border border-rose-950/40 bg-rose-950/5 backdrop-blur-md">
+      <div className="flex min-h-45 w-full flex-1 items-center justify-center rounded-xl border border-rose-950/40 bg-rose-950/5 backdrop-blur-md">
         <div className="flex flex-col items-center justify-center gap-2 text-center">
           <ShieldAlert className="h-5 w-5 text-rose-500" />
           <p className="font-mono text-xs text-rose-400">{t.mapError}</p>
@@ -194,16 +189,15 @@ export default function WorldMap() {
 
   const { regions, globalFullStack } = gisData
 
-  // Continuing export default function WorldMap() return block statement cleanly...
   return (
     <div
-      className="relative flex h-full w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-5 backdrop-blur-md"
+      className="relative flex h-full min-h-55 w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-4 backdrop-blur-md sm:p-5"
       ref={mapContainerRef}
       onMouseMove={handleMouseMove}
     >
       {/* Component Header Terminal Row */}
       <div className="mb-3 flex shrink-0 items-center justify-between">
-        <h3 className="flex items-center gap-2 font-mono text-sm font-bold tracking-wider text-slate-400 uppercase">
+        <h3 className="flex items-center gap-2 font-mono text-xs font-bold tracking-wider text-slate-400 uppercase sm:text-sm">
           <Globe className="h-4 w-4 text-emerald-500" />
           {t.worldMapTitle}
         </h3>
@@ -214,14 +208,14 @@ export default function WorldMap() {
           >
             <HelpCircle className="h-4 w-4" />
           </button>
-          <span className="font-mono text-[10px] tracking-widest text-slate-400/80 uppercase">
+          <span className="hidden font-mono text-[10px] tracking-widest text-slate-400/80 uppercase sm:inline">
             • GIS Satellite Uplink Active
           </span>
         </div>
       </div>
 
-      {/* Vector workspace map canvas container with absolute boundary focus resets */}
-      <div className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20">
+      {/* Vector map canvas container with absolute boundary and aspect ratios for mobile stabilization */}
+      <div className="relative flex aspect-800/380 min-h-45 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20 sm:aspect-auto">
         <ComposableMap
           projection="geoEqualEarth"
           projectionConfig={{
@@ -231,7 +225,6 @@ export default function WorldMap() {
           }}
           width={800}
           height={380}
-          // Deep inline CSS overrides to wipe out default white focus box ring boundaries completely across platforms
           className="h-full w-full border-none ring-0 outline-none select-none focus:ring-0 focus:outline-none active:outline-none"
         >
           <g
@@ -266,6 +259,7 @@ export default function WorldMap() {
                       onClick={(e) =>
                         regionId && handleRegionTrigger(regionId, e)
                       }
+                      className="focus:outline-none focus-visible:drop-shadow-[0_0_8px_rgba(16,185,129,0.6)] focus-visible:filter"
                       style={{
                         default: {
                           fill: geoColor,
@@ -295,6 +289,7 @@ export default function WorldMap() {
                 })
               }
             </Geographies>
+
             {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
             <path
               d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
@@ -308,8 +303,8 @@ export default function WorldMap() {
               }}
               className={
                 globalFullStack
-                  ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)]'
-                  : ''
+                  ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)] focus:outline-none'
+                  : 'focus:outline-none'
               }
               onMouseEnter={(e) => handleRegionTrigger('secret_island', e)}
               onMouseLeave={handleRegionLeave}
