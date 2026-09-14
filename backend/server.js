@@ -45,7 +45,7 @@ app.use((req, res, next) => {
   }
   next()
 })
-app.use('/', apiRoutes)
+app.use('/api', apiRoutes)
 
 // Database connection initialization leveraging automated retries or graceful fallback handlers
 const connectDB = async () => {
