@@ -55,6 +55,7 @@ export default function WorldMap() {
     isMobileModal: false,
   })
   const [isLegendOpen, setIsLegendOpen] = useState(false)
+  const [activeFocusRegion, setActiveFocusRegion] = useState(null) // Keeps track of current keyboard focus destination
   const mapContainerRef = useRef(null)
 
   useEffect(() => {
@@ -99,9 +100,16 @@ export default function WorldMap() {
     }))
   }
 
+  // Refactored handler: dynamically restores keyboard focus context instead of blank slate wipes
   const handleRegionLeave = () => {
     if (tooltip.isMobileModal) return
-    setTooltip((prev) => ({ ...prev, visible: false, content: null }))
+
+    if (activeFocusRegion) {
+      // Re-trigger the active keyboard region stats when mouse cursor moves outside vector canvas boundaries
+      handleRegionTrigger(activeFocusRegion, { type: 'focus', pointerType: '' })
+    } else {
+      setTooltip((prev) => ({ ...prev, visible: false, content: null }))
+    }
   }
 
   const handleRegionTrigger = (regionId, e) => {
@@ -110,13 +118,20 @@ export default function WorldMap() {
       if (typeof e.preventDefault === 'function') e.preventDefault()
     }
 
-    // Upgraded viewport boundary to < 1280 for iPad Pro 13 handling compatibility
-    const isTouchInput =
+    const isKeyboardFocus =
+      e && e.type === 'focus' && (!e.pointerType || e.pointerType === '')
+    const isDesktop = window.innerWidth >= 1280
+
+    // Track active keyboard focus coordinates globally inside the local state tree
+    if (isKeyboardFocus) {
+      setActiveFocusRegion(regionId)
+    }
+
+    const shouldUseMobileModal =
       e &&
       (e.pointerType === 'touch' ||
-        e.type === 'click' ||
-        e.type === 'keydown' ||
-        e.type === 'focus' ||
+        (e.type === 'click' && !isDesktop) ||
+        (!isDesktop && isKeyboardFocus) ||
         window.innerWidth < 1280)
 
     let content = null
@@ -156,12 +171,28 @@ export default function WorldMap() {
       )
     }
 
-    if (isTouchInput) {
+    if (shouldUseMobileModal) {
       setTooltip({ visible: true, x: 0, y: 0, content, isMobileModal: true })
     } else {
+      // Find matching geometric vectors to snap desktop keyboard frames gracefully over target continent centers
+      const targetCenter = continentCenters.find((c) => c.id === regionId)
+
+      // Safe fallback pixels if centers are unmapped inside properties matrices
+      let keyboardX = 20
+      let keyboardY = 50
+
+      if (targetCenter) {
+        // Approximate calculation maps geo-coordinates into smooth layout spots safely
+        const long = targetCenter.coordinates[0]
+        const lat = targetCenter.coordinates[1]
+        keyboardX = 400 + long * 2.2
+        keyboardY = 185 - lat * 1.8
+      }
+
       setTooltip((prev) => ({
-        ...prev,
         visible: true,
+        x: isKeyboardFocus ? keyboardX : prev.x,
+        y: isKeyboardFocus ? keyboardY : prev.y,
         content,
         isMobileModal: false,
       }))
@@ -172,6 +203,14 @@ export default function WorldMap() {
   const handleKeyDown = (regionId, e) => {
     if (e.key === 'Enter' || e.key === ' ') {
       handleRegionTrigger(regionId, e)
+    }
+  }
+
+  // Clean focus context if active user completely blurs out of interactive map canvas completely
+  const handleMapBlur = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setActiveFocusRegion(null)
+      setTooltip((prev) => ({ ...prev, visible: false, content: null }))
     }
   }
 
@@ -204,6 +243,7 @@ export default function WorldMap() {
       className="relative flex h-full min-h-55 w-full flex-col justify-between rounded-xl border border-slate-800/60 bg-slate-900/20 p-4 backdrop-blur-md sm:p-5"
       ref={mapContainerRef}
       onMouseMove={handleMouseMove}
+      onBlur={handleMapBlur}
     >
       {/* Component Header Terminal Row */}
       <div className="mb-3 flex shrink-0 items-center justify-between">
