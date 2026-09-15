@@ -46,13 +46,14 @@ export default function WorldMap() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
-  // Refactored state: added isMobile Modal flag to freeze layout shifts on touch inputs
+  // Refactored state: manages tactical canvas visibility layers, responsive frames, and layout inputs
   const [tooltip, setTooltip] = useState({
     visible: false,
     x: 0,
     y: 0,
     content: null,
     isMobileModal: false,
+    isHoveredByMouse: false, // New flag: strictly tracks active pointer hovering over vectors
   })
   const [isLegendOpen, setIsLegendOpen] = useState(false)
   const mapContainerRef = useRef(null)
@@ -86,7 +87,13 @@ export default function WorldMap() {
   }, [gisData])
 
   const handleMouseMove = (e) => {
-    if (!mapContainerRef.current || tooltip.isMobileModal) return
+    // Tooltip will follow the mouse ONLY if it was triggered by a real hover over a continent
+    if (
+      !mapContainerRef.current ||
+      tooltip.isMobileModal ||
+      !tooltip.isHoveredByMouse
+    )
+      return
     const bounds = mapContainerRef.current.getBoundingClientRect()
     const relativeX = e.clientX - bounds.left
     const relativeY = e.clientY - bounds.top
@@ -99,10 +106,15 @@ export default function WorldMap() {
     }))
   }
 
-  // Standard compliant handler: seamlessly hides tooltip elements upon mouse cursor departure
   const handleRegionLeave = () => {
     if (tooltip.isMobileModal) return
-    setTooltip((prev) => ({ ...prev, visible: false, content: null }))
+    // Clean visibility and reset mouse hover tracking flag immediately
+    setTooltip((prev) => ({
+      ...prev,
+      visible: false,
+      content: null,
+      isHoveredByMouse: false,
+    }))
   }
 
   const handleRegionTrigger = (regionId, e) => {
@@ -114,6 +126,7 @@ export default function WorldMap() {
     const isKeyboardFocus =
       e && e.type === 'focus' && (!e.pointerType || e.pointerType === '')
     const isDesktop = window.innerWidth >= 1280
+    const isMouseEnter = e && e.type === 'mouseenter'
 
     const shouldUseMobileModal =
       e &&
@@ -160,17 +173,21 @@ export default function WorldMap() {
     }
 
     if (shouldUseMobileModal) {
-      setTooltip({ visible: true, x: 0, y: 0, content, isMobileModal: true })
+      setTooltip({
+        visible: true,
+        x: 0,
+        y: 0,
+        content,
+        isMobileModal: true,
+        isHoveredByMouse: false,
+      })
     } else {
-      // Find matching geometric vectors to snap desktop keyboard frames gracefully over target continent centers
       const targetCenter = continentCenters.find((c) => c.id === regionId)
 
-      // Safe fallback pixels if centers are unmapped inside properties matrices
       let keyboardX = 20
       let keyboardY = 50
 
       if (targetCenter) {
-        // Approximate calculation maps geo-coordinates into smooth layout spots safely
         const long = targetCenter.coordinates[0]
         const lat = targetCenter.coordinates[1]
         keyboardX = 400 + long * 2.2
@@ -183,6 +200,12 @@ export default function WorldMap() {
         y: isKeyboardFocus ? keyboardY : prev.y,
         content,
         isMobileModal: false,
+        // true only if user hovered with mouse, false if jumped via keyboard Tab
+        isHoveredByMouse: isMouseEnter
+          ? true
+          : isKeyboardFocus
+            ? false
+            : prev.isHoveredByMouse,
       }))
     }
   }
