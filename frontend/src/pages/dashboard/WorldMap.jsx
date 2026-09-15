@@ -400,10 +400,23 @@ export default function WorldMap() {
           <div
             id="gis-map-tooltip"
             role="dialog"
+            aria-modal="true"
             aria-live="polite"
-            className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs lg:hidden"
+            className="animate-fade-in fixed inset-0 z-100 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm xl:hidden"
+            onClick={() =>
+              setTooltip({
+                visible: false,
+                x: 0,
+                y: 0,
+                content: null,
+                isMobileModal: false,
+              })
+            }
           >
-            <div className="relative w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-2xl">
+            <div
+              className="relative w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()} // Prevents closing modal when clicking inside content box
+            >
               <button
                 onClick={() =>
                   setTooltip({
@@ -418,7 +431,7 @@ export default function WorldMap() {
               >
                 <X className="h-4 w-4" />
               </button>
-              <div className="pr-4">{tooltip.content}</div>
+              <div className="pr-2">{tooltip.content}</div>
             </div>
           </div>
         )}
