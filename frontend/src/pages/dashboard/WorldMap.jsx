@@ -55,7 +55,6 @@ export default function WorldMap() {
     isMobileModal: false,
   })
   const [isLegendOpen, setIsLegendOpen] = useState(false)
-  const [activeFocusRegion, setActiveFocusRegion] = useState(null) // Keeps track of current keyboard focus destination
   const mapContainerRef = useRef(null)
 
   useEffect(() => {
@@ -100,16 +99,10 @@ export default function WorldMap() {
     }))
   }
 
-  // Refactored handler: dynamically restores keyboard focus context instead of blank slate wipes
+  // Standard compliant handler: seamlessly hides tooltip elements upon mouse cursor departure
   const handleRegionLeave = () => {
     if (tooltip.isMobileModal) return
-
-    if (activeFocusRegion) {
-      // Re-trigger the active keyboard region stats when mouse cursor moves outside vector canvas boundaries
-      handleRegionTrigger(activeFocusRegion, { type: 'focus', pointerType: '' })
-    } else {
-      setTooltip((prev) => ({ ...prev, visible: false, content: null }))
-    }
+    setTooltip((prev) => ({ ...prev, visible: false, content: null }))
   }
 
   const handleRegionTrigger = (regionId, e) => {
@@ -121,11 +114,6 @@ export default function WorldMap() {
     const isKeyboardFocus =
       e && e.type === 'focus' && (!e.pointerType || e.pointerType === '')
     const isDesktop = window.innerWidth >= 1280
-
-    // Track active keyboard focus coordinates globally inside the local state tree
-    if (isKeyboardFocus) {
-      setActiveFocusRegion(regionId)
-    }
 
     const shouldUseMobileModal =
       e &&
@@ -209,7 +197,6 @@ export default function WorldMap() {
   // Clean focus context if active user completely blurs out of interactive map canvas completely
   const handleMapBlur = (e) => {
     if (!e.currentTarget.contains(e.relatedTarget)) {
-      setActiveFocusRegion(null)
       setTooltip((prev) => ({ ...prev, visible: false, content: null }))
     }
   }
