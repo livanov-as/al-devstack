@@ -106,15 +106,18 @@ export default function WorldMap() {
 
   const handleRegionTrigger = (regionId, e) => {
     if (e) {
-      e.stopPropagation()
-      e.preventDefault()
+      if (typeof e.stopPropagation === 'function') e.stopPropagation()
+      if (typeof e.preventDefault === 'function') e.preventDefault()
     }
 
+    // Upgraded viewport boundary to < 1280 for iPad Pro 13 handling compatibility
     const isTouchInput =
       e &&
       (e.pointerType === 'touch' ||
         e.type === 'click' ||
-        window.innerWidth < 1024)
+        e.type === 'keydown' ||
+        e.type === 'focus' ||
+        window.innerWidth < 1280)
 
     let content = null
     if (regionId === 'secret_island') {
@@ -162,6 +165,13 @@ export default function WorldMap() {
         content,
         isMobileModal: false,
       }))
+    }
+  }
+
+  // Keyboard navigation vector event triggers handler
+  const handleKeyDown = (regionId, e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleRegionTrigger(regionId, e)
     }
   }
 
@@ -259,6 +269,18 @@ export default function WorldMap() {
                       onClick={(e) =>
                         regionId && handleRegionTrigger(regionId, e)
                       }
+                      onFocus={(e) =>
+                        regionId && handleRegionTrigger(regionId, e)
+                      }
+                      onBlur={handleRegionLeave}
+                      onKeyDown={(e) => regionId && handleKeyDown(regionId, e)}
+                      tabIndex={regionId ? 0 : -1}
+                      role="button"
+                      aria-describedby={
+                        tooltip.visible && regionId
+                          ? 'gis-map-tooltip'
+                          : undefined
+                      }
                       className="focus:outline-none focus-visible:drop-shadow-[0_0_8px_rgba(16,185,129,0.6)] focus-visible:filter"
                       style={{
                         default: {
@@ -276,6 +298,14 @@ export default function WorldMap() {
                           strokeWidth: 1,
                           outline: 'none',
                           cursor: 'crosshair',
+                        },
+                        focus: {
+                          fill: regionStats?.hasCertificate
+                            ? '#34d399'
+                            : '#0ea5e9',
+                          stroke: '#10b981',
+                          strokeWidth: 1.5,
+                          outline: 'none',
                         },
                         pressed: {
                           fill: '#059669',
@@ -301,14 +331,20 @@ export default function WorldMap() {
                 opacity: trackingMetrics.opacityValue,
                 transition: 'all 1s cubic-bezier(0.4, 0, 0.2, 1)',
               }}
+              tabIndex={0}
+              role="button"
+              aria-describedby={tooltip.visible ? 'gis-map-tooltip' : undefined}
               className={
                 globalFullStack
-                  ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)] focus:outline-none'
-                  : 'focus:outline-none'
+                  ? 'cursor-pointer transition-all duration-500 hover:drop-shadow-[0_0_12px_rgba(52,211,153,0.7)] focus:stroke-[#6ee7b7] focus:outline-none'
+                  : 'focus:stroke-[#047857] focus:outline-none'
               }
               onMouseEnter={(e) => handleRegionTrigger('secret_island', e)}
               onMouseLeave={handleRegionLeave}
               onClick={(e) => handleRegionTrigger('secret_island', e)}
+              onFocus={(e) => handleRegionTrigger('secret_island', e)}
+              onBlur={handleRegionLeave}
+              onKeyDown={(e) => handleKeyDown('secret_island', e)}
             />
 
             {/* Synchronized vector trophy badges mapping completed sectors */}
@@ -349,6 +385,9 @@ export default function WorldMap() {
         {/* Desktop Fluid Floating Tooltip Panel (Only visible on mice-driven viewports) */}
         {tooltip.visible && !tooltip.isMobileModal && (
           <div
+            id="gis-map-tooltip"
+            role="tooltip"
+            aria-live="polite"
             style={{ left: tooltip.x, top: tooltip.y }}
             className="animate-fade-in pointer-events-none absolute z-50 hidden max-w-xs rounded-lg border border-slate-800 bg-slate-950/90 p-2.5 shadow-2xl backdrop-blur-md lg:block"
           >
@@ -358,7 +397,12 @@ export default function WorldMap() {
 
         {/* Universal Sticky Touch Modal Panel (Fires on phones, tablet screens, or small developer panels) */}
         {tooltip.visible && tooltip.isMobileModal && (
-          <div className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs lg:hidden">
+          <div
+            id="gis-map-tooltip"
+            role="dialog"
+            aria-live="polite"
+            className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs lg:hidden"
+          >
             <div className="relative w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 p-4 shadow-2xl">
               <button
                 onClick={() =>
