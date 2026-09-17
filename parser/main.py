@@ -133,20 +133,28 @@ async def main():
     if parser_mode == "INCREMENTAL":
         last_task = db["progress"].find_one(sort=[("date", -1)])
         if last_task and "date" in last_task:
-            # Enforce timezone safety on datetime extractions from database
             db_date = last_task["date"]
+            
+            # Defensive check: if date is a string (e.g. from raw JSON seed), parse it safely
+            if isinstance(db_date, str):
+                try:
+                    db_date = datetime.fromisoformat(db_date.replace("Z", "+00:00"))
+                except Exception:
+                    db_date = V9_LAUNCH_DATE
+                    
             if db_date.tzinfo is None:
                 db_date = db_date.replace(tzinfo=timezone.utc)
+                
             # Subtract 48-hour safety buffer window against cross-border latency or processing gaps
             TARGET_SYNC_BOUNDARY = db_date - timedelta(hours=48)
             print(f" ℹ️ Found existing records. Incremental sync boundary set to: {TARGET_SYNC_BOUNDARY}")
         else:
             TARGET_SYNC_BOUNDARY = V9_LAUNCH_DATE
-            print(f" ℹ️ No historical records found. Sync boundary rolled back to v9 Launch: {TARGET_SYNC_BOUNDARY}")
+            print(f" ℹ️ No historical records found. Sync boundary rolled back to v9 Launch: {V9_LAUNCH_DATE}")
     else:
         # TOTAL Mode scans all historical segments capping strictly at the global launch epoch boundary
         TARGET_SYNC_BOUNDARY = V9_LAUNCH_DATE
-        print(f" ℹ️ Total scan profile engaged. Historical processing boundary locked: {TARGET_SYNC_BOUNDARY}")
+        print(f" ℹ️ Total scan profile engaged. Historical processing boundary locked: {V9_LAUNCH_DATE}")
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])

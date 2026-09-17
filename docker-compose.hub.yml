@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  # 1. High-Speed Persistent Database Layer (No changes needed)
+  mongodb:
+    image: mongo:latest
+    container_name: al-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+
+  # 2. Production Node.js API Infrastructure (Pulled dynamically from Docker Hub)
+  backend:
+    image: andreisl/al-backend:latest
+    container_name: al-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/al-devstack
+      - CACHE_SECRET_TOKEN=local_dev_secret_token_2026
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # 3. Superlight Nginx Reactive Web Client (Pulled dynamically from Docker Hub)
+  frontend:
+    image: andreisl/al-frontend:latest
+    container_name: al-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  # 4. Scraper Engine Pipeline Layer (Pulled dynamically from Docker Hub)
+  parser:
+    image: andreisl/al-parser:latest
+    container_name: al-parser
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017/al-devstack
+      - CACHE_SECRET_TOKEN=local_dev_secret_token_2026
+      - PARSER_MODE=INCREMENTAL
+      - BACKEND_INTERNAL_URL=http://backend:5000/api
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      backend:
+        condition: service_started

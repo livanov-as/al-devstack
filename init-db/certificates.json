@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "6a465d7888d38c9348fac77d",
+    "id": "livanov-as-responsive-web-design-v9",
+    "slug": "responsive-web-design-v9",
+    "title": "View Responsive Web Design Certification",
+    "url": "freecodecamp.org/certification/livanov-as/responsive-web-design-v9"
+  },
+  {
+    "_id": "6a465d7888d38c9348fac77e",
+    "id": "livanov-as-javascript-v9",
+    "slug": "javascript-v9",
+    "title": "View JavaScript Certification",
+    "url": "freecodecamp.org/certification/livanov-as/javascript-v9"
+  },
+  {
+    "_id": "6a465d7888d38c9348fac77f",
+    "id": "livanov-as-responsive-web-design",
+    "slug": "responsive-web-design",
+    "title": "View Legacy Responsive Web Design V8 Certification",
+    "url": "freecodecamp.org/certification/livanov-as/responsive-web-design"
+  },
+  {
+    "_id": "6a465d7888d38c9348fac780",
+    "id": "livanov-as-javascript-algorithms-and-data-structures",
+    "slug": "javascript-algorithms-and-data-structures",
+    "title": "View Legacy JavaScript Algorithms and Data Structures V7 Certification",
+    "url": "freecodecamp.org/certification/livanov-as/javascript-algorithms-and-data-structures"
+  }
+]
