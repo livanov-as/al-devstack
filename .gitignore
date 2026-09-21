@@ -2,6 +2,7 @@
 parser/venv/
 __pycache__/
 *.pyc
+parser/make_banner.py
 
 # === System & Editors (VS Code, WebStorm, OS) ===
 .vscode/*
