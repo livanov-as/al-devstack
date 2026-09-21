@@ -1,5 +1,4 @@
 [![al-devstack dashboard](./frontend/src/assets/dashboard-banner.webp)](https://al-devstack.vercel.app)
-<br />
 
 # al-devstack: Full-Stack GIS Monitoring for freeCodeCamp
 
