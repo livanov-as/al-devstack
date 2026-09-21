@@ -1,7 +1,6 @@
-<a href="https://al-devstack.vercel.app" target="_blank">
+<a href="https://al-devstack.vercel.app" rel="noopener noreferrer">
   <img src="./frontend/src/assets/dashboard-banner.webp" width="100%" alt="al-devstack dashboard" />
 </a>
-
 # al-devstack: Full-Stack GIS Monitoring for freeCodeCamp
 
 A minimalist GIS dashboard and automated scraping pipeline designed to visualize and monitor learning progress on freeCodeCamp in real time.
