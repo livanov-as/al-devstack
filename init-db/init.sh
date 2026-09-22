@@ -1,11 +1,19 @@
 #!/bin/bash
 
-# Print initialization message
-echo "=== INITIALIZING LOCAL MONGODB DATA REPOSITORIES ==="
+# Print cloud-native data injection sequence initialization message
+echo "=== STARTING CLOUD-NATIVE DATABASE PRE-SEEDING INJECTION ==="
 
-# Import credentials collections using native mongoimport utility boundaries
-mongoimport --db al-devstack --collection certificates --file /docker-entrypoint-initdb.d/certificates.json --jsonArray --mode upsert
-mongoimport --db al-devstack --collection progress --file /docker-entrypoint-initdb.d/progress.json --jsonArray --mode upsert
+# Determine available database network host (fallback to container_name if service name missing)
+DB_HOST="mongodb"
+if ! ping -c 1 "$DB_HOST" &> /dev/null; then
+    DB_HOST="al-mongodb"
+fi
 
-# Confirm telemetry synchronization matrix success cleared
+echo "Connecting to database host: $DB_HOST"
+
+# Import credentials and tracking collections targeting verified mongodb host node cleanly
+mongoimport --host="$DB_HOST" --db=al-devstack --collection=certificates --file=/docker-entrypoint-initdb.d/certificates.json --jsonArray
+mongoimport --host="$DB_HOST" --db=al-devstack --collection=progress --file=/docker-entrypoint-initdb.d/progress.json --jsonArray
+
+# Confirm telemetry database seeding orchestration sequence success cleared
 echo "=== DATABASE PRE-SEEDING SEQUENCE COMPLETED SUCCESSFULLY ==="

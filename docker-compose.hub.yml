@@ -1,34 +1,44 @@
 version: "3.8"
 
 services:
-  # 1. High-Speed Persistent Database Layer (No changes needed)
+  # 1. High-Speed Persistent Database Layer
   mongodb:
     image: mongo:latest
     container_name: al-mongodb
     ports:
       - "27017:27017"
-    volumes:
-      - ./init-db:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 5s
       timeout: 5s
-      retries: 3
+      retries: 5
 
-  # 2. Production Node.js API Infrastructure (Pulled dynamically from Docker Hub)
+  # 2. Cloud-Native Init Container (Remote Pre-seeded Data Ingestion)
+  db-seeder:
+    image: andreisl/al-db-seeder:latest
+    container_name: al-db-seeder
+    entrypoint: /docker-entrypoint-initdb.d/init.sh
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+  # 3. Production Node.js API Infrastructure (Awaits database pre-seeding completion)
   backend:
     image: andreisl/al-backend:latest
     container_name: al-backend
     ports:
       - "5000:5000"
     environment:
+      - PORT=5000
       - MONGO_URI=mongodb://mongodb:27017/al-devstack
       - CACHE_SECRET_TOKEN=local_dev_secret_token_2026
     depends_on:
       mongodb:
         condition: service_healthy
+      db-seeder:
+        condition: service_completed_successfully # Enforce strict block until data injection sequence finishes
 
-  # 3. Superlight Nginx Reactive Web Client (Pulled dynamically from Docker Hub)
+  # 4. Superlight Nginx Reactive Web Client
   frontend:
     image: andreisl/al-frontend:latest
     container_name: al-frontend
@@ -37,7 +47,7 @@ services:
     depends_on:
       - backend
 
-  # 4. Scraper Engine Pipeline Layer (Pulled dynamically from Docker Hub)
+  # 5. Scraper Engine Pipeline Layer
   parser:
     image: andreisl/al-parser:latest
     container_name: al-parser
