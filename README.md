@@ -10,7 +10,7 @@ A minimalist GIS dashboard and automated scraping pipeline designed to visualize
 
 ### 🏗️ System Architecture & Data Flow
 
-```
+```properties
 [ freeCodeCamp Profile ] (Target User)
 │
 ▼ (Headless Automation)
