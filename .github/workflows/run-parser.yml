@@ -50,6 +50,7 @@ jobs:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           CACHE_SECRET_TOKEN: ${{ secrets.CACHE_SECRET_TOKEN }}
           PARSER_MODE: ${{ env.RUN_MODE }}
+          CURRENT_USER_ROLE: admin
           # Active infrastructure deployment route mapping targets
           BACKEND_INTERNAL_URL: 'https://al-devstack-production.up.railway.app'
         run: |
