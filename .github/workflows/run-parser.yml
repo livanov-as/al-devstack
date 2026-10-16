@@ -2,10 +2,8 @@ name: FreeCodeCamp Profile Parser Lifecycle
 
 on:
   schedule:
-    # 1. Weekly Execution: Every Sunday at 00:00 UTC
+    # Weekly Execution: Every Sunday at 00:00 UTC
     - cron: '0 0 * * 0'
-    # 2. Monthly Execution: Every 1st day of the month at 03:00 UTC
-    - cron: '0 3 1 * *'
   workflow_dispatch:
     inputs:
       parser_mode:
@@ -46,12 +44,7 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: echo "RUN_MODE=${{ github.event.inputs.parser_mode }}" >> $GITHUB_ENV
 
-      # STEP C: Handle automated monthly cron schedule trigger intersection
-      - name: Handle Monthly Scheduled Run
-        if: github.event_name == 'schedule' && github.event.schedule == '0 3 1 * *'
-        run: echo "RUN_MODE=TOTAL" >> $GITHUB_ENV
-
-      # STEP D: Launch core scraper process utilizing finalized context variables
+      # STEP C: Launch core scraper process utilizing finalized context variables
       - name: Execute Scraper Pipeline
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}

@@ -11,16 +11,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Cloud-Native Init Container (Local Build Data Seeder)
-  db-seeder:
-    build: ./init-db
-    container_name: al-db-seeder
-    entrypoint: /docker-entrypoint-initdb.d/init.sh
-    depends_on:
-      mongodb:
-        condition: service_healthy
-
-  # 3. Backend API Domain Layer (Express Node Server)
+  # 2. Backend API Domain Layer (Express Node Server)
   backend:
     build: ./backend
     container_name: al-backend
@@ -33,10 +24,8 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
-      db-seeder:
-        condition: service_completed_successfully # Await complete data injection pipeline execution
 
-  # 4. Frontend Web Interface Layer (React + Vite + Nginx Reverse Proxy)
+  # 3. Frontend Web Interface Layer (React + Vite + Nginx Reverse Proxy)
   frontend:
     build: ./frontend
     container_name: al-frontend
@@ -45,15 +34,16 @@ services:
     depends_on:
       - backend
 
-  # 5. Scraper Pipeline Engine Layer (Python + Playwright Lifecycle Execution)
+  # 4. Scraper Pipeline Engine Layer (Python + Playwright Lifecycle Execution)
   parser:
     build: ./parser
     container_name: al-parser
     environment:
       - MONGO_URI=mongodb://mongodb:27017/al-devstack
       - CACHE_SECRET_TOKEN=local_dev_secret_token_2026
-      - PARSER_MODE=INCREMENTAL
-      - BACKEND_INTERNAL_URL=http://backend:5000/api
+      - BACKEND_INTERNAL_URL=http://backend:5000
+      - IS_DOCKER_ENV=true
+      - CURRENT_USER_ROLE=admin
     depends_on:
       mongodb:
         condition: service_healthy
