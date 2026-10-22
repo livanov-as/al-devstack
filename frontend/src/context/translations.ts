@@ -1,4 +1,53 @@
-export const translations = {
+// Define explicit layout structure shape to enforce complete dictionary key parity
+export interface TranslationKeys {
+  certificatesTitle: string
+  noCertificates: string
+  worldMapTitle: string
+  taskTimelineTitle: string
+  activityCalendarTitle: string
+  activityCalendarSubtitle: string
+  activityCalendarBadge: string
+  less: string
+  more: string
+  tasks: string
+  noTasks: string
+  categoryPython: string
+  categoryFrontend: string
+  categoryBackend: string
+  fullStackIslandTitle: string
+  fullStackIslandActive: string
+  fullStackIslandLocked: string
+  fullStackIslandSecretTitle: string
+  fullStackIslandSecretProgress: string
+  fullStackIslandSecretSteps: string
+  fullStackIslandSecretUnlocked: string
+  fullStackIslandSecretLocked: string
+  mapTooltipTerritory: string
+  mapTooltipTech: string
+  mapTooltipExplored: string
+  mapTooltipSynced: string
+  mapLoading: string
+  mapError: string
+  mapLegendTitle: string
+  mapLegendOffline: string
+  mapLegendInit: string
+  mapLegendSyncing: string
+  mapLegendComplete: string
+  mapLegendTrophy: string
+  mapLegendAccessBtn: string
+  certActiveArchitecture: string
+  certLegacyInfrastructure: string
+  certLinkOffline: string
+  region_europe: string
+  region_asia: string
+  region_africa: string
+  region_north_america: string
+  region_south_america: string
+  region_australia_oceania: string
+}
+
+// Strictly typed translation registry matching supported language domains
+export const translations: Record<string, TranslationKeys> = {
   en: {
     // Component Headers
     certificatesTitle: 'Earned Certificates',
@@ -17,7 +66,7 @@ export const translations = {
     noTasks: 'no tasks',
 
     // Task Category Labels
-    categoryParser: 'Parser Engine',
+    categoryPython: 'Parser Engine',
     categoryFrontend: 'Frontend Core',
     categoryBackend: 'Backend Server',
 
@@ -81,7 +130,7 @@ export const translations = {
     noTasks: 'нет задач',
 
     // Метки категорий задач
-    categoryParser: 'Парсер',
+    categoryPython: 'Парсер',
     categoryFrontend: 'Фронтенд',
     categoryBackend: 'Бэкенд',
 

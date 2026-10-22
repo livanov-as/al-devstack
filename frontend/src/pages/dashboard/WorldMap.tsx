@@ -1,26 +1,52 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react'
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  MouseEvent,
+  KeyboardEvent,
+  FocusEvent,
+} from 'react'
 import {
   ComposableMap,
   Geographies,
   Geography,
   Marker,
 } from '@vnedyalk0v/react19-simple-maps'
-import { scaleLinear } from 'd3-scale'
+import * as d3Scale from 'd3-scale'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Globe, ShieldAlert, Radio, HelpCircle, X } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
 import geoData from '../../assets/continents-optimized.json'
 
-// Premium cyberpunk color spectrum scale mapping sync progression with strict domain matching
-const colorScale = scaleLinear().domain([0, 30, 99, 100]).range([
-  '#0f172a', // 0% - Slate 950 deep core
-  '#047857', // 1-30% - Emerald 700 early sync
-  '#0d9488', // 31-99% - Teal 600 orbital telemetry
-  '#10b981', // 100% - Pure Emerald complete sync
-])
+interface IRegionStats {
+  id: string
+  name: string
+  percentage: number
+  hasCertificate: boolean
+}
 
-// Mapping configuration to safely resolve GeoJSON properties to internal database state IDs
-const topoJsonIdMap = {
+interface IGisData {
+  regions: Record<string, IRegionStats>
+  globalFullStack: boolean
+}
+
+interface ITooltipState {
+  visible: boolean
+  x: number
+  y: number
+  content: React.ReactNode | null
+  isMobileModal: boolean
+  isHoveredByMouse: boolean
+}
+
+// Fixed colorScale generic mapping signature
+const colorScale = d3Scale
+  .scaleLinear<string>()
+  .domain([0, 30, 99, 100])
+  .range(['#0f172a', '#047857', '#0d9488', '#10b981'])
+
+const topoJsonIdMap: Record<string, string> = {
   Europe: 'europe',
   Asia: 'asia',
   Africa: 'africa',
@@ -30,7 +56,6 @@ const topoJsonIdMap = {
   Australia: 'australia_oceania',
 }
 
-// Absolute geographic coordinates for placing digital milestone trophies on map workspace
 const continentCenters = [
   { id: 'north_america', coordinates: [-100, 45], name: 'North America' },
   { id: 'south_america', coordinates: [-60, -20], name: 'South America' },
@@ -42,21 +67,20 @@ const continentCenters = [
 
 export default function WorldMap() {
   const { t } = useLanguage()
-  const [gisData, setGisData] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const [gisData, setGisData] = useState<IGisData | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<boolean>(false)
 
-  // Refactored state: manages tactical canvas visibility layers, responsive frames, and layout inputs
-  const [tooltip, setTooltip] = useState({
+  const [tooltip, setTooltip] = useState<ITooltipState>({
     visible: false,
     x: 0,
     y: 0,
     content: null,
     isMobileModal: false,
-    isHoveredByMouse: false, // New flag: strictly tracks active pointer hovering over vectors
+    isHoveredByMouse: false,
   })
-  const [isLegendOpen, setIsLegendOpen] = useState(false)
-  const mapContainerRef = useRef(null)
+  const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/progress/geo-stats`)
@@ -64,11 +88,11 @@ export default function WorldMap() {
         if (!res.ok) throw new Error('GIS Link Offline')
         return res.json()
       })
-      .then((data) => {
-        setGisData(data)
+      .then((data: unknown) => {
+        setGisData(data as IGisData)
         setLoading(false)
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         console.warn(err.message)
         setError(true)
         setLoading(false)
@@ -86,8 +110,7 @@ export default function WorldMap() {
     return { earned: totalCerts, blurValue, opacityValue }
   }, [gisData])
 
-  const handleMouseMove = (e) => {
-    // Tooltip will follow the mouse ONLY if it was triggered by a real hover over a continent
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
     if (
       !mapContainerRef.current ||
       tooltip.isMobileModal ||
@@ -108,7 +131,6 @@ export default function WorldMap() {
 
   const handleRegionLeave = () => {
     if (tooltip.isMobileModal) return
-    // Clean visibility and reset mouse hover tracking flag immediately
     setTooltip((prev) => ({
       ...prev,
       visible: false,
@@ -117,7 +139,7 @@ export default function WorldMap() {
     }))
   }
 
-  const handleRegionTrigger = (regionId, e) => {
+  const handleRegionTrigger = (regionId: string, e?: any) => {
     if (e) {
       if (typeof e.stopPropagation === 'function') e.stopPropagation()
       if (typeof e.preventDefault === 'function') e.preventDefault()
@@ -127,7 +149,6 @@ export default function WorldMap() {
       e && e.type === 'focus' && (!e.pointerType || e.pointerType === '')
     const isDesktop = window.innerWidth >= 1280
     const isMouseEnter = e && e.type === 'mouseenter'
-
     const shouldUseMobileModal =
       e &&
       (e.pointerType === 'touch' ||
@@ -135,7 +156,7 @@ export default function WorldMap() {
         (!isDesktop && isKeyboardFocus) ||
         window.innerWidth < 1280)
 
-    let content = null
+    let content: React.ReactNode = null
     if (regionId === 'secret_island') {
       content = (
         <div className="font-mono text-[11px] tracking-wide text-slate-200">
@@ -183,7 +204,6 @@ export default function WorldMap() {
       })
     } else {
       const targetCenter = continentCenters.find((c) => c.id === regionId)
-
       let keyboardX = 20
       let keyboardY = 50
 
@@ -200,7 +220,6 @@ export default function WorldMap() {
         y: isKeyboardFocus ? keyboardY : prev.y,
         content,
         isMobileModal: false,
-        // true only if user hovered with mouse, false if jumped via keyboard Tab
         isHoveredByMouse: isMouseEnter
           ? true
           : isKeyboardFocus
@@ -210,16 +229,17 @@ export default function WorldMap() {
     }
   }
 
-  // Keyboard navigation vector event triggers handler
-  const handleKeyDown = (regionId, e) => {
+  const handleKeyDown = (
+    regionId: string,
+    e: KeyboardEvent<SVGPathElement>,
+  ) => {
     if (e.key === 'Enter' || e.key === ' ') {
       handleRegionTrigger(regionId, e)
     }
   }
 
-  // Clean focus context if active user completely blurs out of interactive map canvas completely
-  const handleMapBlur = (e) => {
-    if (!e.currentTarget.contains(e.relatedTarget)) {
+  const handleMapBlur = (e: FocusEvent<HTMLDivElement>) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setTooltip((prev) => ({ ...prev, visible: false, content: null }))
     }
   }
@@ -255,7 +275,6 @@ export default function WorldMap() {
       onMouseMove={handleMouseMove}
       onBlur={handleMapBlur}
     >
-      {/* Component Header Terminal Row */}
       <div className="mb-3 flex shrink-0 items-center justify-between">
         <h3 className="flex items-center gap-2 font-mono text-xs font-bold tracking-wider text-slate-400 uppercase sm:text-sm">
           <Globe className="h-4 w-4 text-emerald-500" />
@@ -274,15 +293,16 @@ export default function WorldMap() {
         </div>
       </div>
 
-      {/* Vector map canvas container with absolute boundary and aspect ratios for mobile stabilization */}
       <div className="relative flex aspect-800/380 min-h-45 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20 sm:aspect-auto">
         <ComposableMap
           projection="geoEqualEarth"
-          projectionConfig={{
-            scale: 140,
-            center: [0, 0],
-            translate: [400, 185],
-          }}
+          projectionConfig={
+            {
+              scale: 140,
+              center: [0, 0],
+              translate: [400, 185],
+            } as any
+          }
           width={800}
           height={380}
           className="h-full w-full border-none ring-0 outline-none select-none focus:ring-0 focus:outline-none active:outline-none"
@@ -312,18 +332,20 @@ export default function WorldMap() {
                     <Geography
                       key={geo.rsmKey}
                       geography={geo}
-                      onMouseEnter={(e) =>
+                      onMouseEnter={(e: any) =>
                         regionId && handleRegionTrigger(regionId, e)
                       }
                       onMouseLeave={handleRegionLeave}
-                      onClick={(e) =>
+                      onClick={(e: any) =>
                         regionId && handleRegionTrigger(regionId, e)
                       }
-                      onFocus={(e) =>
+                      onFocus={(e: any) =>
                         regionId && handleRegionTrigger(regionId, e)
                       }
                       onBlur={handleRegionLeave}
-                      onKeyDown={(e) => regionId && handleKeyDown(regionId, e)}
+                      onKeyDown={(e: any) =>
+                        regionId && handleKeyDown(regionId, e)
+                      }
                       tabIndex={regionId ? 0 : -1}
                       role="button"
                       aria-describedby={
@@ -349,14 +371,6 @@ export default function WorldMap() {
                           outline: 'none',
                           cursor: 'crosshair',
                         },
-                        focus: {
-                          fill: regionStats?.hasCertificate
-                            ? '#34d399'
-                            : '#0ea5e9',
-                          stroke: '#10b981',
-                          strokeWidth: 1.5,
-                          outline: 'none',
-                        },
                         pressed: {
                           fill: '#059669',
                           stroke: '#1e293b',
@@ -370,7 +384,6 @@ export default function WorldMap() {
               }
             </Geographies>
 
-            {/* THE SEED: Full-Stack Progressive Trigger Easter Egg Island Matrix */}
             <path
               d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
               style={{
@@ -397,12 +410,11 @@ export default function WorldMap() {
               onKeyDown={(e) => handleKeyDown('secret_island', e)}
             />
 
-            {/* Synchronized vector trophy badges mapping completed sectors */}
             {continentCenters.map((center) => {
               const targetRegion = regions[center.id]
               if (!targetRegion || !targetRegion.hasCertificate) return null
               return (
-                <Marker key={center.id} coordinates={center.coordinates}>
+                <Marker key={center.id} coordinates={center.coordinates as any}>
                   <g
                     transform="translate(-8, -15) scale(0.85)"
                     className="pointer-events-none drop-shadow-[0_2px_10px_rgba(234,179,8,0.4)]"
@@ -432,7 +444,6 @@ export default function WorldMap() {
           </g>
         </ComposableMap>
 
-        {/* Desktop Fluid Floating Tooltip Panel (Only visible on mice-driven viewports) */}
         {tooltip.visible && !tooltip.isMobileModal && (
           <div
             id="gis-map-tooltip"
@@ -445,7 +456,6 @@ export default function WorldMap() {
           </div>
         )}
 
-        {/* Universal Sticky Touch Modal Panel (Fires on phones, tablet screens, or small developer panels) */}
         {tooltip.visible && tooltip.isMobileModal && (
           <div
             id="gis-map-tooltip"
@@ -460,12 +470,13 @@ export default function WorldMap() {
                 y: 0,
                 content: null,
                 isMobileModal: false,
+                isHoveredByMouse: false,
               })
             }
           >
             <div
               className="relative w-full max-w-xs rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl"
-              onClick={(e) => e.stopPropagation()} // Prevents closing modal when clicking inside content box
+              onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() =>
@@ -475,6 +486,7 @@ export default function WorldMap() {
                     y: 0,
                     content: null,
                     isMobileModal: false,
+                    isHoveredByMouse: false,
                   })
                 }
                 className="absolute top-3 right-3 cursor-pointer p-1 text-slate-500 hover:text-slate-300"
@@ -487,7 +499,6 @@ export default function WorldMap() {
         )}
       </div>
 
-      {/* Embedded Modal Component Overlay for Legend Specs */}
       {isLegendOpen && (
         <div className="animate-fade-in absolute inset-0 z-50 flex items-center justify-center rounded-xl bg-slate-950/80 p-4 backdrop-blur-xs">
           <div className="relative w-full max-w-sm rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-2xl">

@@ -1,11 +1,17 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
 import { API_BASE_URL } from '../../config'
 
+// Explicit type layout definition for the sequential calendar day segment
+interface CalendarDay {
+  date: string
+  count: number
+}
+
 export default function ActivityCalendar() {
   const { t } = useLanguage()
-  const [activityMap, setActivityMap] = useState({})
-  const [loading, setLoading] = useState(true)
+  const [activityMap, setActivityMap] = useState<Record<string, number>>({})
+  const [loading, setLoading] = useState<boolean>(true)
 
   // 1. Fetch aggregated calendar data directly from the dedicated telemetry endpoint
   useEffect(() => {
@@ -19,16 +25,16 @@ export default function ActivityCalendar() {
         if (!res.ok) throw new Error('Calendar API Link Offline')
         return res.json()
       })
-      .then((data) => {
+      .then((data: unknown) => {
         // Enforce safe payload mapping: { "YYYY-MM-DD": count }
         if (data && typeof data === 'object' && !Array.isArray(data)) {
-          setActivityMap(data)
+          setActivityMap(data as Record<string, number>)
         } else {
           setActivityMap({})
         }
         setLoading(false)
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         console.warn(
           'Telemetry server unreachable, fallback empty state:',
           err.message,
@@ -39,8 +45,8 @@ export default function ActivityCalendar() {
   }, [])
 
   // 2. Generate a flat sequential array tracking exactly the last 31 days
-  const calendarDays = useMemo(() => {
-    const result = []
+  const calendarDays = useMemo<CalendarDay[]>(() => {
+    const result: CalendarDay[] = []
     const totalTargetDays = 31
     const today = new Date()
 
@@ -60,7 +66,7 @@ export default function ActivityCalendar() {
   }, [activityMap])
 
   // Cyberpunk design system matrix color tiers
-  const getColorClass = (count) => {
+  const getColorClass = (count: number): string => {
     if (count === 0) return 'bg-slate-800 border-slate-700/40'
     if (count <= 2) return 'bg-emerald-900 border-emerald-800'
     if (count <= 5) return 'bg-emerald-700 border-emerald-600'
@@ -99,7 +105,7 @@ export default function ActivityCalendar() {
           {calendarDays.map((day) => (
             <div
               key={day.date}
-              title={`${day.date}: ${day.count > 0 ? `${day.count} ${t.tasks}` : t.noTasks}`}
+              title={`${day.date}: ${day.count > 0 ? `day.count {t.tasks}` : t.noTasks}`}
               className={`h-3 w-3 cursor-pointer rounded-xs border transition-all duration-150 hover:z-10 hover:scale-125 ${getColorClass(day.count)}`}
             />
           ))}

@@ -1,4 +1,3 @@
-import React from 'react'
 import LanguageProvider from './context/LanguageProvider'
 import { useLanguage } from './hooks/useLanguage'
 import ActivityCalendar from './pages/dashboard/ActivityCalendar'

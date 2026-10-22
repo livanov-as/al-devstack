@@ -1,19 +1,19 @@
 @import 'tailwindcss';
 
 @theme {
-  /* Увеличиваем базовый шрифт до 18px, как ты и задумывал */
+  /* Increase baseline viewport font dimensions to 18px footprint */
   --font-size-base: 1.125rem;
   --line-height-base: 1.75rem;
 }
 
 @layer base {
   body {
-    /* Принудительно задаем глубокий темный цвет для всего приложения */
+    /* Enforce strict terminal deep slate backdrop schema globally */
     @apply bg-[#020617] text-slate-100 antialiased;
   }
 }
 
-/* Кастомный тонкий скроллбар для правого таймлайна и сетки активности */
+/* Custom thin scrollbar layout footprint for dashboard timeline and activity feeds */
 @utility scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: #334155 transparent; /* slate-700 */

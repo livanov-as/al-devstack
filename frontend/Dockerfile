@@ -4,20 +4,20 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package.json AND package-lock.json using wildcard target
-COPY package*.json ./
+# Copy package configurations securely (including our existing lockfile)
+COPY package.json package-lock.json ./
 
-# Set NPM registry to local fast mirror to avoid connection drops
+# Set NPM registry to local fast mirror to avoid connection drops in RU region
 RUN npm config set registry https://registry.npmmirror.com
 
 # Run crisp and deterministic clean install using lockfile boundaries
 RUN npm ci --prefer-offline --no-audit
 
-# Copy core engine source code files
+# Copy absolutely all engine source files and asset directories cleanly
 COPY . .
 
-# Compile localized GIS dashboards distribution
-RUN npm run build
+# Compile and build application forcing local-only lookup via npx sandboxing
+RUN npx --no-install tsc --noEmit && npx --no-cache vite build
 
 # ==========================================
 # STAGE 2: Lightweight runner distribution

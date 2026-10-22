@@ -1,12 +1,21 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Award, ExternalLink } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
 
+// Strict TypeScript interface matching the backend Certificate model definition layout
+interface ICertificate {
+  _id?: string
+  id?: string
+  slug: string
+  title: string
+  url: string
+}
+
 export default function CertificatesGrid() {
   const { t } = useLanguage()
-  const [certs, setCerts] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [certs, setCerts] = useState<ICertificate[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
 
   useEffect(() => {
     // Isolated secure fetch workflow routing directly to active database configurations
@@ -16,11 +25,13 @@ export default function CertificatesGrid() {
           throw new Error(t.certLinkOffline || 'Certificates Link Offline')
         return res.json()
       })
-      .then((data) => {
-        if (Array.isArray(data)) setCerts(data)
+      .then((data: unknown) => {
+        if (Array.isArray(data)) {
+          setCerts(data as ICertificate[])
+        }
         setLoading(false)
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         console.warn(err.message)
         setLoading(false)
       })
@@ -77,7 +88,7 @@ export default function CertificatesGrid() {
                     className="group flex items-center justify-between rounded-lg border border-slate-800/80 bg-slate-950/40 p-3 transition-all duration-200 hover:border-emerald-500/30 hover:bg-emerald-950/5"
                   >
                     <div className="min-w-0 pr-2">
-                      <div className="truncate font-mono text-xs font-semibold wrap-break-word text-slate-200 transition-colors group-hover:text-emerald-400">
+                      <div className="truncate font-mono text-xs font-semibold text-slate-200 transition-colors group-hover:text-emerald-400">
                         {cert.title}
                       </div>
                       <div className="mt-0.5 truncate font-mono text-[9px] tracking-tight text-slate-500 uppercase">
@@ -111,7 +122,7 @@ export default function CertificatesGrid() {
                     className="group flex items-center justify-between rounded-lg border border-slate-800/40 bg-slate-950/10 p-3 transition-all duration-200 hover:border-slate-700/60 hover:bg-slate-900/20"
                   >
                     <div className="min-w-0 pr-2">
-                      <div className="truncate font-mono text-xs font-medium wrap-break-word text-slate-400 transition-colors group-hover:text-slate-300">
+                      <div className="truncate font-mono text-xs font-medium text-slate-400 transition-colors group-hover:text-slate-300">
                         {cert.title}
                       </div>
                       <div className="mt-0.5 truncate font-mono text-[9px] tracking-tight text-slate-600 uppercase">
