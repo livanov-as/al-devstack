@@ -20,7 +20,7 @@ router.get('/progress/calendar', async (req: Request, res: Response) => {
 
     let clientTimezone = (req.query.timezone as string) || 'UTC'
 
-    const timezoneRegex = /^[A-Za-z0-9_\-\/]+$/
+    const timezoneRegex = /^[A-Za-z0-9_\-/]+$/
     if (!timezoneRegex.test(clientTimezone)) {
       clientTimezone = 'UTC'
     }
