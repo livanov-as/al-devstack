@@ -1,4 +1,4 @@
-# STEP 1: Build environment and compile TypeScript source code
+# Step 1: Build environment and compile TypeScript source code
 FROM node:20-alpine AS builder
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY . .
 # Compile TypeScript to production-ready JavaScript (generates /dist folder)
 RUN npm run build
 
-# STEP 2: Minimalist high-performance production runtime environment
+# Step 2: Minimalist high-performance production runtime environment
 FROM node:20-alpine
 WORKDIR /app
 ENV NODE_ENV=production
