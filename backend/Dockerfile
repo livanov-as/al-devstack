@@ -1,7 +1,9 @@
 # STEP 1: Build environment and compile TypeScript source code
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package*.json tsconfig.json ./
+
+# Copy all configuration manifests including Nest CLI schema frameworks
+COPY package*.json tsconfig.json nest-cli.json ./
 
 # Set NPM registry to local fast mirror to avoid connection drops in RU region
 RUN npm config set registry https://registry.npmmirror.com
