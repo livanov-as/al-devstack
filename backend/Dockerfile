@@ -25,10 +25,10 @@ RUN npm config set registry https://registry.npmmirror.com
 # Install ONLY runtime production dependencies cleanly bypassing all dev-linters conflicts
 RUN npm ci --omit=dev --prefer-offline --no-audit --legacy-peer-deps
 
-# Copy the compiled JavaScript files and GIS telemetry configuration assets
+# Copy only the compiled JavaScript files and core environment configs from the builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/config ./config
 
 EXPOSE 5000
-# Run native micro-optimized JavaScript engine directly pointing to NestJS entrypoint
-CMD ["node", "dist/main.js"]
+# Run micro-optimized Node engine directly pointing to the accurate NestJS compiled entrypoint file
+CMD ["node", "dist/src/main.js"]
