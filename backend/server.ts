@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import cors from 'cors'
 import dotenv from 'dotenv'
 import path from 'path'
+import fs from 'fs'
+import swaggerUi from 'swagger-ui-express'
 import apiRoutes from './routes/api.js'
 
 // Load local configuration file only if environment variables are not set by the hosting provider
@@ -34,12 +36,19 @@ app.use(
 )
 app.use(express.json())
 
+// Load declarative documentation specs bypassing ES Module import assertion restrictions
+const swaggerPath = path.resolve('./config/swagger.json')
+const swaggerDocument = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'))
+
+// Mount Swagger interactive sandbox interface endpoint routing
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
+
 // Global database connection health tracker state flag
 let isDatabaseConnected: boolean = false
 
 // Mount routing logic cleanly directly at root level to comply with vercel.json rewrite logic
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (!isDatabaseConnected && req.path !== '/health') {
+  if (!isDatabaseConnected && req.path !== '/health' && !req.path.startsWith('/api-docs')) {
     res.setHeader('Retry-After', '30')
     return res.status(503).json({ error: 'Database Infrastructure Unavailable. Service is warming up.' })
   }
@@ -75,4 +84,5 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.listen(PORT, () => {
   console.log(`🚀 Backend server successfully running on port ${PORT}`)
+  console.log(`📑 Interactive API Documentation running on target: http://localhost:${PORT}/api-docs`)
 })

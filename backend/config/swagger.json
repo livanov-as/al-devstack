@@ -1,0 +1,218 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "al-devstack API Infrastructure",
+    "version": "1.0.0",
+    "description": "Interactive OpenAPI documentation for freeCodeCamp v9 GIS telemetry matrix services."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api",
+      "description": "Local Development Server Proxy"
+    },
+    {
+      "url": "https://railway.app",
+      "description": "Production Live Infrastructure"
+    }
+  ],
+  "paths": {
+    "/progress/calendar": {
+      "get": {
+        "summary": "Retrieve 31-day activity synchronization matrix",
+        "parameters": [
+          {
+            "name": "timezone",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "UTC"
+            },
+            "description": "Target client browser timezone signature identifier to mitigate date shifting anomalies"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated temporal task completion counters dictionary map",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "example": {
+                    "2026-10-25": 4,
+                    "2026-10-26": 7
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Database Pipeline Failures"
+          }
+        }
+      }
+    },
+    "/progress/timeline": {
+      "get": {
+        "summary": "Fetch live tracking task stream feed",
+        "responses": {
+          "200": {
+            "description": "Array containing exactly 10 historical curriculum completions items sorted chronologically desc",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tasks": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "_id": { "type": "string" },
+                          "task_name": { "type": "string" },
+                          "category": { "type": "string" },
+                          "date": { "type": "string", "format": "date-time" },
+                          "url": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/certificates": {
+      "get": {
+        "summary": "List all verified earned credentials collections archived in Atlas",
+        "responses": {
+          "200": {
+            "description": "Active and legacy certificates array list matching layout indices",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "_id": { "type": "string" },
+                      "slug": { "type": "string" },
+                      "title": { "type": "string" },
+                      "url": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/progress/geo-stats": {
+      "get": {
+        "summary": "Compile regional GIS progress analytics facets mapping",
+        "responses": {
+          "200": {
+            "description": "Geographic breakdown schema mapping states matched to freeCodeCamp credentials set rules",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "regions": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "string" },
+                          "name": { "type": "string" },
+                          "completed": { "type": "integer" },
+                          "total": { "type": "integer" },
+                          "percentage": { "type": "integer" },
+                          "hasCertificate": { "type": "boolean" }
+                        }
+                      }
+                    },
+                    "globalFullStack": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "GIS Aggregation Layer Failure Exceptions"
+          }
+        }
+      }
+    },
+    "/progress/cache-flush": {
+      "post": {
+        "summary": "Invalidate in-memory regional GIS analytics stats cache",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "description": "Backup cache flush payload token verification token string key fallback"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Cache successfully dropped from memory allocation layers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized: Security token authorization validation signatures mismatched"
+          },
+          "500": {
+            "description": "Server Configuration Missing Core Token Reference Contexts"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter the CACHE_SECRET_TOKEN value inside the input authorization matrix wrapper to authenticate webhook flushes"
+      }
+    }
+  }
+}
