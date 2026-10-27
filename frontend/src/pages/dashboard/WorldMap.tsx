@@ -1,6 +1,5 @@
-import React, {
+import {
   useState,
-  useEffect,
   useMemo,
   useRef,
   MouseEvent,
@@ -13,6 +12,7 @@ import {
   Geography,
   Marker,
 } from '@vnedyalk0v/react19-simple-maps'
+import { useQuery } from '@tanstack/react-query'
 import * as d3Scale from 'd3-scale'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Globe, ShieldAlert, Radio, HelpCircle, X } from 'lucide-react'
@@ -67,9 +67,8 @@ const continentCenters = [
 
 export default function WorldMap() {
   const { t } = useLanguage()
-  const [gisData, setGisData] = useState<IGisData | null>(null)
-  const [loading, setLoading] = useState<boolean>(true)
-  const [error, setError] = useState<boolean>(false)
+  const mapContainerRef = useRef<HTMLDivElement>(null)
+  const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false)
 
   const [tooltip, setTooltip] = useState<ITooltipState>({
     visible: false,
@@ -79,25 +78,20 @@ export default function WorldMap() {
     isMobileModal: false,
     isHoveredByMouse: false,
   })
-  const [isLegendOpen, setIsLegendOpen] = useState<boolean>(false)
-  const mapContainerRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/progress/geo-stats`)
-      .then((res) => {
-        if (!res.ok) throw new Error('GIS Link Offline')
-        return res.json()
-      })
-      .then((data: unknown) => {
-        setGisData(data as IGisData)
-        setLoading(false)
-      })
-      .catch((err: Error) => {
-        console.warn(err.message)
-        setError(true)
-        setLoading(false)
-      })
-  }, [])
+  // Integrated TanStack useQuery telemetry data synchronization orchestrator
+  const {
+    data: gisData,
+    isLoading,
+    isError,
+  } = useQuery<IGisData>({
+    queryKey: ['geo-stats'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/progress/geo-stats`)
+      if (!res.ok) throw new Error('GIS Link Offline')
+      return res.json()
+    },
+  })
 
   const trackingMetrics = useMemo(() => {
     if (!gisData || !gisData.regions)
@@ -244,7 +238,7 @@ export default function WorldMap() {
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex min-h-45 w-full flex-1 items-center justify-center rounded-xl border border-slate-800/60 bg-slate-900/20 backdrop-blur-md">
         <div className="flex flex-col items-center justify-center gap-2 text-center">
@@ -255,7 +249,7 @@ export default function WorldMap() {
     )
   }
 
-  if (error || !gisData) {
+  if (isError || !gisData) {
     return (
       <div className="flex min-h-45 w-full flex-1 items-center justify-center rounded-xl border border-rose-950/40 bg-rose-950/5 backdrop-blur-md">
         <div className="flex flex-col items-center justify-center gap-2 text-center">

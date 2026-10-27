@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '../../hooks/useLanguage'
 import { API_BASE_URL } from '../../config'
 
@@ -10,39 +11,37 @@ interface CalendarDay {
 
 export default function ActivityCalendar() {
   const { t } = useLanguage()
-  const [activityMap, setActivityMap] = useState<Record<string, number>>({})
-  const [loading, setLoading] = useState<boolean>(true)
 
-  // 1. Fetch aggregated calendar data directly from the dedicated telemetry endpoint
-  useEffect(() => {
-    // Automatically detect browser timezone to prevent localized date shifting
-    const clientTimezone =
-      Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
-    fetch(
-      `${API_BASE_URL}/progress/calendar?timezone=${encodeURIComponent(clientTimezone)}`,
-    )
-      .then((res) => {
-        if (!res.ok) throw new Error('Calendar API Link Offline')
-        return res.json()
-      })
-      .then((data: unknown) => {
-        // Enforce safe payload mapping: { "YYYY-MM-DD": count }
-        if (data && typeof data === 'object' && !Array.isArray(data)) {
-          setActivityMap(data as Record<string, number>)
-        } else {
-          setActivityMap({})
-        }
-        setLoading(false)
-      })
-      .catch((err: Error) => {
-        console.warn(
-          'Telemetry server unreachable, fallback empty state:',
-          err.message,
-        )
-        setActivityMap({})
-        setLoading(false)
-      })
+  // Automatically detect browser timezone to prevent localized date shifting
+  const clientTimezone = useMemo(() => {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
   }, [])
+
+  // Integrated TanStack useQuery for smart caching of the 31-day activity matrix
+  const { data: activityMap = {}, isLoading } = useQuery<
+    Record<string, number>
+  >({
+    queryKey: ['activity-calendar', clientTimezone],
+    queryFn: async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE_URL}/progress/calendar?timezone=${encodeURIComponent(clientTimezone)}`,
+        )
+        if (!res.ok) throw new Error('Calendar API Link Offline')
+        const json = await res.json()
+
+        // Enforce safe payload mapping validation: { "YYYY-MM-DD": count }
+        if (json && typeof json === 'object' && !Array.isArray(json)) {
+          return json as Record<string, number>
+        }
+        return {}
+      } catch (err) {
+        console.warn('Telemetry server unreachable, fallback empty state:', err)
+        return {}
+      }
+    },
+    placeholderData: {}, // Safe static hydration fallback barrier
+  })
 
   // 2. Generate a flat sequential array tracking exactly the last 31 days
   const calendarDays = useMemo<CalendarDay[]>(() => {
@@ -74,7 +73,7 @@ export default function ActivityCalendar() {
     return 'bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.4)] border-emerald-300' // 8+ concurrent tasks
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-32 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60">
         <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-emerald-500" />
@@ -105,7 +104,7 @@ export default function ActivityCalendar() {
           {calendarDays.map((day) => (
             <div
               key={day.date}
-              title={`${day.date}: ${day.count > 0 ? `day.count {t.tasks}` : t.noTasks}`}
+              title={`${day.date}: ${day.count > 0 ? `${day.count} ${t.tasks}` : t.noTasks}`}
               className={`h-3 w-3 cursor-pointer rounded-xs border transition-all duration-150 hover:z-10 hover:scale-125 ${getColorClass(day.count)}`}
             />
           ))}

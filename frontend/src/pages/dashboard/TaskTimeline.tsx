@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '../../hooks/useLanguage'
 import { CheckCircle2, Clock, ExternalLink } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
@@ -26,40 +27,43 @@ const fallbackTasks: ITask[] = Array.from({ length: 10 }, (_, i) => ({
 
 export default function TaskTimeline() {
   const { t, lang } = useLanguage()
-  const [tasks, setTasks] = useState<ITask[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
-  const [isMocked, setIsMocked] = useState<boolean>(false)
 
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/progress/timeline`)
-      .then((res) => {
+  // Integrated TanStack useQuery for chronological live telemetry feeds
+  const { data, isLoading } = useQuery<{ tasks: ITask[]; isMocked: boolean }>({
+    queryKey: ['progress-timeline'],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/progress/timeline`)
         if (!res.ok) throw new Error('API Error')
-        return res.json()
-      })
-      .then((data: any) => {
+        const json = await res.json()
+
         const rawTasks =
-          data && Array.isArray(data.tasks)
-            ? (data.tasks as ITask[])
-            : fallbackTasks
-        const sortedData = rawTasks
+          json && Array.isArray(json.tasks) ? json.tasks : fallbackTasks
+        const sortedData = [...rawTasks]
           .sort(
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
           )
           .slice(0, 10)
-        setTasks(sortedData)
-        setIsMocked(!data || !Array.isArray(data.tasks))
-        setLoading(false)
-      })
-      .catch((err: Error) => {
+
+        return {
+          tasks: sortedData,
+          isMocked: !json || !Array.isArray(json.tasks),
+        }
+      } catch (err) {
         console.warn(
           'Progress backend offline, initializing demo matrix mode:',
-          err.message,
+          err,
         )
-        setTasks(fallbackTasks)
-        setIsMocked(true)
-        setLoading(false)
-      })
-  }, [])
+        return {
+          tasks: fallbackTasks,
+          isMocked: true,
+        }
+      }
+    },
+  })
+
+  // Safe destructuring with fallback object to maintain structural rendering integrity during loading state
+  const { tasks = fallbackTasks, isMocked = true } = data || {}
 
   // Resolve category specs matching keys against structural GEO_MAPPING criteria directly
   const resolveCategoryDetails = (slug: string) => {
@@ -102,7 +106,7 @@ export default function TaskTimeline() {
     }
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex h-full min-h-65 w-full items-center justify-center rounded-xl border border-slate-800 bg-slate-900/60 py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-emerald-500" />

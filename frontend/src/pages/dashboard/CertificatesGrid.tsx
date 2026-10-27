@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useLanguage } from '../../hooks/useLanguage'
 import { Award, ExternalLink } from 'lucide-react'
 import { API_BASE_URL } from '../../config'
@@ -14,30 +14,21 @@ interface ICertificate {
 
 export default function CertificatesGrid() {
   const { t } = useLanguage()
-  const [certs, setCerts] = useState<ICertificate[]>([])
-  const [loading, setLoading] = useState<boolean>(true)
 
-  useEffect(() => {
-    // Isolated secure fetch workflow routing directly to active database configurations
-    fetch(`${API_BASE_URL}/certificates`)
-      .then((res) => {
-        if (!res.ok)
-          throw new Error(t.certLinkOffline || 'Certificates Link Offline')
-        return res.json()
-      })
-      .then((data: unknown) => {
-        if (Array.isArray(data)) {
-          setCerts(data as ICertificate[])
-        }
-        setLoading(false)
-      })
-      .catch((err: Error) => {
-        console.warn(err.message)
-        setLoading(false)
-      })
-  }, [t])
+  // Integrated TanStack useQuery for background sync and caching of earned credentials
+  const { data: certs = [], isLoading } = useQuery<ICertificate[]>({
+    queryKey: ['certificates-archive'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/certificates`)
+      if (!res.ok) {
+        throw new Error(t.certLinkOffline || 'Certificates Link Offline')
+      }
+      return res.json()
+    },
+    placeholderData: [], // Safe static hydration fallback array barrier
+  })
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-full min-h-48 w-full animate-pulse rounded-xl border border-slate-800/50 bg-slate-900/40" />
     )

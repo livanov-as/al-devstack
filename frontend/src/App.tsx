@@ -1,9 +1,54 @@
+import { Component, ErrorInfo, ReactNode } from 'react'
 import LanguageProvider from './context/LanguageProvider'
 import { useLanguage } from './hooks/useLanguage'
 import ActivityCalendar from './pages/dashboard/ActivityCalendar'
 import TaskTimeline from './pages/dashboard/TaskTimeline'
 import WorldMap from './pages/dashboard/WorldMap'
 import CertificatesGrid from './pages/dashboard/CertificatesGrid'
+
+interface ErrorBoundaryProps {
+  children: ReactNode
+  fallback?: ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+}
+
+// Explicit class-based Error Boundary system implementation for React 19 runtime safety
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false,
+  }
+
+  public static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true }
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Telemetry UX Runtime Exception caught:', error, errorInfo)
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        this.props.fallback || (
+          <div className="flex h-full min-h-65 w-full flex-col items-center justify-center rounded-xl border border-rose-950/40 bg-rose-950/5 p-6 text-center backdrop-blur-md">
+            <span className="font-mono text-xs font-bold tracking-widest text-rose-400 uppercase">
+              // System Error Boundary Triggered
+            </span>
+            <p className="mt-2 font-mono text-[11px] text-slate-400">
+              An unexpected runtime crash occurred within this dashboard
+              cluster.
+            </p>
+          </div>
+        )
+      )
+    }
+
+    return this.props.children
+  }
+}
 
 function Header() {
   const { lang, setLang } = useLanguage()
@@ -36,11 +81,15 @@ function DashboardContent() {
         <div className="flex h-full flex-col space-y-5 lg:col-span-8 lg:overflow-hidden">
           {/* Main geographic progress tracking engine mapping workspace */}
           <div className="flex min-h-0 flex-1 flex-col">
-            <WorldMap />
+            <ErrorBoundary>
+              <WorldMap />
+            </ErrorBoundary>
           </div>
           {/* Horizontally stretched localized 31-day activity strip */}
           <div className="shrink-0">
-            <ActivityCalendar />
+            <ErrorBoundary>
+              <ActivityCalendar />
+            </ErrorBoundary>
           </div>
         </div>
 
@@ -48,11 +97,15 @@ function DashboardContent() {
         <div className="flex h-full flex-col space-y-5 lg:col-span-4 lg:max-h-full lg:overflow-hidden">
           {/* Top segment: Live tasks stream telemetry stream */}
           <div className="min-h-0 flex-1">
-            <TaskTimeline />
+            <ErrorBoundary>
+              <TaskTimeline />
+            </ErrorBoundary>
           </div>
           {/* Bottom segment: Earned credentials certified archive */}
           <div className="min-h-0 flex-1">
-            <CertificatesGrid />
+            <ErrorBoundary>
+              <CertificatesGrid />
+            </ErrorBoundary>
           </div>
         </div>
       </div>
