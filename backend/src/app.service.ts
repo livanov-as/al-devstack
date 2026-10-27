@@ -1,28 +1,43 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Certificate, CertificateDocument } from './schemas/certificate.schema.js';
-import { Progress, ProgressDocument } from './schemas/progress.schema.js';
-import { GEO_MAPPING, GLOBAL_TRIGGER_SLUG } from '../config/constants.js';
+import {
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+  Logger,
+} from '@nestjs/common'
+import { InjectModel } from '@nestjs/mongoose'
+import { Model } from 'mongoose'
+import {
+  Certificate,
+  CertificateDocument,
+} from './schemas/certificate.schema.js'
+import { Progress, ProgressDocument } from './schemas/progress.schema.js'
+import { GEO_MAPPING, GLOBAL_TRIGGER_SLUG } from '../config/constants.js'
 
 @Injectable()
 export class AppService {
+  // Encapsulated infrastructure system diagnostics logger
+  private readonly logger = new Logger(AppService.name)
+
   // In-Memory regional GIS analytics stats storage cache allocation mapping
-  private geoStatsCache: any = null;
+  private geoStatsCache: any = null
 
   constructor(
-    @InjectModel(Certificate.name) private certificateModel: Model<CertificateDocument>,
-    @InjectModel(Progress.name) private progressModel: Model<ProgressDocument>,
+    @InjectModel(Certificate.name)
+    private certificateModel: Model<CertificateDocument>,
+    @InjectModel(Progress.name)
+    private progressModel: Model<ProgressDocument>,
   ) {}
 
   /**
    * Aggregates and groups user activity history over the last 31 days directly in the database.
    */
-  async getCalendarStats(clientTimezone: string): Promise<Record<string, number>> {
+  async getCalendarStats(
+    clientTimezone: string,
+  ): Promise<Record<string, number>> {
     try {
-      const targetDays = 31;
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - targetDays);
+      const targetDays = 31
+      const startDate = new Date()
+      startDate.setDate(startDate.getDate() - targetDays)
 
       const aggregation = await this.progressModel.aggregate([
         {
@@ -42,15 +57,18 @@ export class AppService {
             count: { $sum: 1 },
           },
         },
-      ]);
+      ])
 
       return aggregation.reduce((acc: Record<string, number>, curr) => {
-        acc[curr._id] = curr.count;
-        return acc;
-      }, {});
+        acc[curr._id] = curr.count
+        return acc
+      }, {})
     } catch (error) {
-      console.error('Error fetching calendar stats:', error);
-      throw new InternalServerErrorException('Internal Server Error');
+      this.logger.error(
+        `Failed to compile 31-day activity matrix stats: ${(error as Error).message}`,
+        (error as Error).stack,
+      )
+      throw new InternalServerErrorException('Internal Server Error')
     }
   }
 
@@ -59,16 +77,20 @@ export class AppService {
    */
   async getTimelineTasks() {
     try {
-      const tasksList = await this.progressModel.find({})
+      const tasksList = await this.progressModel
+        .find({})
         .sort({ date: -1 })
         .limit(10)
         .select('task_name category date url')
-        .lean();
+        .lean()
 
-      return { tasks: tasksList };
+      return { tasks: tasksList }
     } catch (error) {
-      console.error('Error fetching timeline tasks:', error);
-      throw new InternalServerErrorException('Internal Server Error');
+      this.logger.error(
+        `Failed to fetch current timeline tasks snapshot feed: ${(error as Error).message}`,
+        (error as Error).stack,
+      )
+      throw new InternalServerErrorException('Internal Server Error')
     }
   }
 
@@ -77,10 +99,13 @@ export class AppService {
    */
   async getCertificates() {
     try {
-      return await this.certificateModel.find({}).sort({ slug: 1 }).lean();
+      return await this.certificateModel.find({}).sort({ slug: 1 }).lean()
     } catch (error) {
-      console.error('Error fetching certificates:', error);
-      throw new InternalServerErrorException('Internal Server Error');
+      this.logger.error(
+        `Failed to query active certified credentials archive: ${(error as Error).message}`,
+        (error as Error).stack,
+      )
+      throw new InternalServerErrorException('Internal Server Error')
     }
   }
 
@@ -90,14 +115,14 @@ export class AppService {
   async getGeoStats(): Promise<{ data: any; cacheHit: boolean }> {
     try {
       if (this.geoStatsCache) {
-        return { data: this.geoStatsCache, cacheHit: true };
+        return { data: this.geoStatsCache, cacheHit: true }
       }
 
-      const certsList = await this.certificateModel.find({}).lean();
-      const earnedCertSlugs = new Set(certsList.map((c) => c.slug));
-      const hasGlobalFullStack = earnedCertSlugs.has(GLOBAL_TRIGGER_SLUG);
+      const certsList = await this.certificateModel.find({}).lean()
+      const earnedCertSlugs = new Set(certsList.map((c) => c.slug))
+      const hasGlobalFullStack = earnedCertSlugs.has(GLOBAL_TRIGGER_SLUG)
 
-      const facetPipeline: Record<string, any[]> = {};
+      const facetPipeline: Record<string, any[]> = {}
       for (const [key, config] of Object.entries(GEO_MAPPING)) {
         facetPipeline[key] = [
           {
@@ -108,23 +133,24 @@ export class AppService {
           {
             $count: 'count',
           },
-        ];
+        ]
       }
 
       const [aggregationResult] = await this.progressModel.aggregate([
         { $facet: facetPipeline },
-      ]);
+      ])
 
-      const stats: Record<string, any> = {};
+      const stats: Record<string, any> = {}
       for (const [key, config] of Object.entries(GEO_MAPPING)) {
-        const dbFacetRows = aggregationResult && aggregationResult[key];
-        const completedTasksCount = dbFacetRows && dbFacetRows[0] ? dbFacetRows[0].count : 0;
+        const dbFacetRows = aggregationResult && aggregationResult[key]
+        const completedTasksCount =
+          dbFacetRows && dbFacetRows[0] ? dbFacetRows[0].count : 0
 
-        const hasRegionCertificate = earnedCertSlugs.has(config.certSlug);
+        const hasRegionCertificate = earnedCertSlugs.has(config.certSlug)
 
-        let percentage = 0;
+        let percentage = 0
         if (hasRegionCertificate) {
-          percentage = 100;
+          percentage = 100
         } else if (config.maxLessons > 0) {
           percentage = Math.min(
             100,
@@ -139,38 +165,51 @@ export class AppService {
           total: config.maxLessons,
           percentage: percentage,
           hasCertificate: hasRegionCertificate,
-        };
+        }
       }
 
       this.geoStatsCache = {
         regions: stats,
         globalFullStack: hasGlobalFullStack,
-      };
+      }
 
-      return { data: this.geoStatsCache, cacheHit: false };
+      this.logger.log('Successfully re-compiled GIS regional progress statistics facets.')
+      return { data: this.geoStatsCache, cacheHit: false }
     } catch (error) {
-      console.error('GIS aggregation error:', error);
-      throw new InternalServerErrorException('Internal Server Error');
+      this.logger.error(
+        `GIS telemetry matrix aggregation workflow failed: ${(error as Error).message}`,
+        (error as Error).stack,
+      )
+      throw new InternalServerErrorException('Internal Server Error')
     }
   }
 
   /**
    * Secure endpoint utilized by the parser execution lifecycle to invalidate local memory caches.
    */
-  flushCache(tokenFromHeader: string | null, tokenFromBody: string | null): { success: boolean; message: string } {
-    const secretToken = process.env.CACHE_SECRET_TOKEN;
+  flushCache(
+    tokenFromHeader: string | null,
+    tokenFromBody: string | null,
+  ): { success: boolean; message: string } {
+    const secretToken = process.env.CACHE_SECRET_TOKEN
 
     if (!secretToken) {
-      throw new InternalServerErrorException('Cache secret token is not configured on server');
+      this.logger.error('Configuration Failure: CACHE_SECRET_TOKEN is missing on server runtime state.')
+      throw new InternalServerErrorException(
+        'Cache secret token is not configured on server',
+      )
     }
 
     if (tokenFromHeader !== secretToken && tokenFromBody !== secretToken) {
-      throw new UnauthorizedException('Unauthorized: Invalid cache flush security token signature');
+      this.logger.warn('Security Alert: Unauthorized attempts to access cache flush webhook endpoint.')
+      throw new UnauthorizedException(
+        'Unauthorized: Invalid cache flush security token signature',
+      )
     }
 
-    this.geoStatsCache = null;
-    console.log(' ♻️ In-Memory regional GIS stats cache successfully cleared via web-hook trigger.');
+    this.geoStatsCache = null
+    this.logger.log('♻️ In-Memory regional GIS stats cache successfully cleared via web-hook trigger.')
 
-    return { success: true, message: 'Cache invalidated successfully' };
+    return { success: true, message: 'Cache invalidated successfully' }
   }
 }

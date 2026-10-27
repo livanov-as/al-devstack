@@ -1,6 +1,7 @@
 import os
 import re
 import asyncio
+import traceback
 import httpx
 from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
@@ -24,9 +25,6 @@ USER_ROLE = os.getenv("CURRENT_USER_ROLE", "user").lower()
 IS_DOCKER = os.getenv("IS_DOCKER_ENV", "false").lower() == "true"
 
 # ULTIMATE DOCKER & MULTI-USER PERFORMANCE OPTIMIZATION
-# If executing inside local Docker context (removes init-db necessity) OR user role is standard user,
-# restrict pagination lookup window depth strictly to 30 pages to preserve API network bandwidth.
-# Full deep scan history is unlocked exclusively for 'admin' running outside Docker container profiles.
 if IS_DOCKER or USER_ROLE == "user":
     MAX_PAGES_LIMIT = 30
 else:
@@ -61,9 +59,7 @@ async def parse_certifications(page) -> list:
 
 
 async def parse_timeline_page(page) -> list:
-    """Parses a single pagination page of the freeCodeCamp v9 timeline asynchronously.
-    Looks for links across the entire row structure due to shifting markup layouts.
-    """
+    """Parses a single pagination page of the freeCodeCamp v9 timeline asynchronously."""
     tasks = []
     rows = await page.query_selector_all("tr.timeline-row")
     for row in rows:
@@ -134,213 +130,206 @@ async def flush_backend_cache():
 
 async def main():
     print(" 🚀 Starting total asynchronous HTML scraper lifecycle (fCC v9 compliance)...")
-    db = get_mongo_db()
     
-    # 1. Zero-Configuration: Automatically detect active operational profile mode
-    total_existing_records = db["progress"].count_documents({})
-    
-    # Check if manual override flag is provided via environment variables
-    env_parser_mode = os.getenv("PARSER_MODE", "").upper()
-    
-    if env_parser_mode in ["INCREMENTAL", "TOTAL"]:
-        parser_mode = env_parser_mode
-        print(f" 🛠️ Manual override engaged. Operating profile enforced: {parser_mode}")
-    else:
-        # Smart fallback allocation depending on local database infrastructure state
-        parser_mode = "INCREMENTAL" if total_existing_records > 0 else "TOTAL"
-        print(f" 🛠️ Auto-detected operational execution profile mode: {parser_mode}")
+    try:
+        db = get_mongo_db()
+        
+        # 1. Zero-Configuration: Automatically detect active operational profile mode
+        total_existing_records = db["progress"].count_documents({})
+        env_parser_mode = os.getenv("PARSER_MODE", "").upper()
+        
+        if env_parser_mode in ["INCREMENTAL", "TOTAL"]:
+            parser_mode = env_parser_mode
+            print(f" 🛠️ Manual override engaged. Operating profile enforced: {parser_mode}")
+        else:
+            parser_mode = "INCREMENTAL" if total_existing_records > 0 else "TOTAL"
+            print(f" 🛠️ Auto-detected operational execution profile mode: {parser_mode}")
 
-    # 2. Establish synchronization interval parameters and timezone guards
-    if parser_mode == "INCREMENTAL":
-        last_task = db["progress"].find_one(sort=[("date", -1)])
-        if last_task and "date" in last_task:
-            db_date = last_task["date"]
-            
-            # Defensive type guard validation: handle raw string seeds safely
-            if isinstance(db_date, str):
-                try:
-                    db_date = datetime.fromisoformat(db_date.replace("Z", "+00:00"))
-                except Exception:
-                    db_date = V9_LAUNCH_DATE
+        # 2. Establish synchronization interval parameters and timezone guards
+        if parser_mode == "INCREMENTAL":
+            last_task = db["progress"].find_one(sort=[("date", -1)])
+            if last_task and "date" in last_task:
+                db_date = last_task["date"]
+                if isinstance(db_date, str):
+                    try:
+                        db_date = datetime.fromisoformat(db_date.replace("Z", "+00:00"))
+                    except Exception:
+                        db_date = V9_LAUNCH_DATE
+                        
+                if db_date.tzinfo is None:
+                    db_date = db_date.replace(tzinfo=timezone.utc)
                     
-            # Timezone awareness guard: enforce strict offset-aware UTC standard
-            if db_date.tzinfo is None:
-                db_date = db_date.replace(tzinfo=timezone.utc)
-                
-            # Compute the 48-hour safety buffer window against cross-border processing latency
-            TARGET_SYNC_BOUNDARY = db_date - timedelta(hours=48)
-            print(f" ℹ️ Incremental sync boundary calculated (including 48h buffer): {TARGET_SYNC_BOUNDARY}")
+                TARGET_SYNC_BOUNDARY = db_date - timedelta(hours=48)
+                print(f" ℹ️ Incremental sync boundary calculated (including 48h buffer): {TARGET_SYNC_BOUNDARY}")
+            else:
+                TARGET_SYNC_BOUNDARY = V9_LAUNCH_DATE
+                parser_mode = "TOTAL"
+                print(f" ℹ️ No historical date index records found. Upgraded to mode: TOTAL")
         else:
             TARGET_SYNC_BOUNDARY = V9_LAUNCH_DATE
-            parser_mode = "TOTAL"
-            print(f" ℹ️ No historical date index records found. Upgraded to mode: TOTAL")
-    else:
-        TARGET_SYNC_BOUNDARY = V9_LAUNCH_DATE
-        print(f" ℹ️ Total scan profile engaged. Historical processing boundary locked: {V9_LAUNCH_DATE}")
+            print(f" ℹ️ Total scan profile engaged. Historical processing boundary locked: {V9_LAUNCH_DATE}")
 
-    print(f" 📊 Operational parameters allocated. Smart Depth Control: MAX_PAGES_LIMIT = {MAX_PAGES_LIMIT}")
+        print(f" 📊 Operational parameters allocated. Smart Depth Control: MAX_PAGES_LIMIT = {MAX_PAGES_LIMIT}")
 
-    async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
-        context = await browser.new_context()
-        page = await context.new_page()
-        profile_url = f"https://freecodecamp.org/{TARGET_USERNAME}"
-        
-        print(f" 🌐 Navigating to public profile workspace: {profile_url}")
-        await page.goto(profile_url, wait_until="domcontentloaded", timeout=60000)
-        
-        await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-        await page.wait_for_timeout(3000)
-        await page.wait_for_selector("tr.timeline-row", timeout=60000)
-
-        # 3. Circuit Breaker / Early Exit: Validate idle state on the first page immediately
-        if parser_mode == "INCREMENTAL":
-            first_row = await page.query_selector("tr.timeline-row")
-            if first_row:
-                time_elem = await first_row.query_selector("time")
-                if time_elem:
-                    first_date_iso = await time_elem.get_attribute("datetime") or ""
-                    try:
-                        first_task_date = datetime.fromisoformat(first_date_iso.replace("Z", "+00:00"))
-                        last_saved_task = db["progress"].find_one(sort=[("date", -1)])
-                        if last_saved_task and "date" in last_saved_task:
-                            last_saved_date = last_saved_task["date"]
-                            if isinstance(last_saved_date, str):
-                                last_saved_date = datetime.fromisoformat(last_saved_date.replace("Z", "+00:00"))
-                            if last_saved_date.tzinfo is None:
-                                last_saved_date = last_saved_date.replace(tzinfo=timezone.utc)
-                            
-                            # If dates match second-to-second, break pipeline execution immediately
-                            if first_task_date == last_saved_date:
-                                print(f" 🏁 Early Exit: First DOM task date ({first_task_date}) matches latest DB record.")
-                                await browser.close()
-                                print(" 🎉 Scraper safely went into hibernation. Resource usage minimized.")
-                                return
-                    except Exception as e:
-                        print(f" ⚠️ Early Exit validation skipped due to parsing exception: {str(e)}")
-
-        # --- Synchronize Certifications ---
-        print(" 🎖️ Synchronizing active verified credentials archive...")
-        active_certs = await parse_certifications(page)
-        if active_certs:
-            for cert in active_certs:
-                db["certificates"].update_one({"_id": cert["_id"]}, {"$set": cert}, upsert=True)
-            print(f" ✅ Certifications matrix updated successfully. Size count: {len(active_certs)}")
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True, args=["--no-sandbox"])
+            context = await browser.new_context()
+            page = await context.new_page()
+            profile_url = f"https://freecodecamp.org/{TARGET_USERNAME}"
             
-        # --- Synchronize Timeline Tasks ---
-        print(" ⏳ Gathering timeline pagination structural telemetry blocks...")
-        all_scraped_tasks = []
-        page_number = 1
-        should_continue = True
-        
-        while should_continue:
-            empty_page_retries = 2
-            page_tasks = []
+            print(f" 🌐 Navigating to public profile workspace: {profile_url}")
+            await page.goto(profile_url, wait_until="domcontentloaded", timeout=60000)
             
-            # Anti-empty-page network latency stabilization loops
-            while empty_page_retries > 0:
-                page_tasks = await parse_timeline_page(page)
-                if page_tasks:
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+            await page.wait_for_timeout(3000)
+            await page.wait_for_selector("tr.timeline-row", timeout=60000)
+
+            # 3. Circuit Breaker / Early Exit: Validate idle state immediately
+            if parser_mode == "INCREMENTAL":
+                first_row = await page.query_selector("tr.timeline-row")
+                if first_row:
+                    time_elem = await first_row.query_selector("time")
+                    if time_elem:
+                        first_date_iso = await time_elem.get_attribute("datetime") or ""
+                        try:
+                            first_task_date = datetime.fromisoformat(first_date_iso.replace("Z", "+00:00"))
+                            last_saved_task = db["progress"].find_one(sort=[("date", -1)])
+                            if last_saved_task and "date" in last_saved_task:
+                                last_saved_date = last_saved_task["date"]
+                                if isinstance(last_saved_date, str):
+                                    last_saved_date = datetime.fromisoformat(last_saved_date.replace("Z", "+00:00"))
+                                if last_saved_date.tzinfo is None:
+                                    last_saved_date = last_saved_date.replace(tzinfo=timezone.utc)
+                                
+                                if first_task_date == last_saved_date:
+                                    print(f" 🏁 Early Exit: First DOM task date ({first_task_date}) matches latest DB record.")
+                                    await browser.close()
+                                    print(" 🎉 Scraper safely went into hibernation. Resource usage minimized.")
+                                    return
+                        except Exception as e:
+                            print(f" ⚠️ Early Exit validation skipped due to parsing exception: {str(e)}")
+
+            # --- Synchronize Certifications ---
+            print(" 🎖️ Synchronizing active verified credentials archive...")
+            active_certs = await parse_certifications(page)
+            if active_certs:
+                for cert in active_certs:
+                    db["certificates"].update_one({"_id": cert["_id"]}, {"$set": cert}, upsert=True)
+                print(f" ✅ Certifications matrix updated successfully. Size count: {len(active_certs)}")
+                
+            # --- Synchronize Timeline Tasks ---
+            print(" ⏳ Gathering timeline pagination structural telemetry blocks...")
+            all_scraped_tasks = []
+            page_number = 1
+            should_continue = True
+            
+            while should_continue:
+                empty_page_retries = 2
+                page_tasks = []
+                
+                while empty_page_retries > 0:
+                    page_tasks = await parse_timeline_page(page)
+                    if page_tasks:
+                        break
+                    print(f" ⚠️ Warning: Page {page_number} returned 0 records. Refreshing viewport buffers...")
+                    await page.wait_for_timeout(5000)
+                    empty_page_retries -= 1
+                    
+                if not page_tasks:
+                    print(f" 🛑 Page {page_number} empty. Circuit breaking pagination iterator loop.")
                     break
-                print(f" ⚠️ Warning: Page {page_number} returned 0 records. Refreshing viewport window buffers...")
-                await page.wait_for_timeout(5000)
-                empty_page_retries -= 1
+                    
+                page_filtered_count = 0
+                for task in page_tasks:
+                    is_v9_curriculum = "v9" in task["category"].lower()
+                    
+                    if parser_mode == "TOTAL" and task["date"] < TARGET_SYNC_BOUNDARY:
+                        print(f" 🏁 Epoch Boundary Reached: Task date ({task['date']}) is older than limit. Shutting down.")
+                        should_continue = False
+                        break
+                    
+                    if is_v9_curriculum and task["date"] > TARGET_SYNC_BOUNDARY:
+                        all_scraped_tasks.append(task)
+                        page_filtered_count += 1
+                        
+                print(f" 📄 Page {page_number}: Scraped {len(page_tasks)} tasks. New target v9 tasks: {page_filtered_count}")
                 
-            if not page_tasks:
-                print(f" 🛑 Page {page_number} empty. Circuit breaking pagination iterator loop.")
-                break
-                
-            page_filtered_count = 0
-            for task in page_tasks:
-                is_v9_curriculum = "v9" in task["category"].lower()
-                
-                # STRICT TOTAL CRITERIA BREAK: Halt entirely if we clear the historical Epoch timeline boundary (Shifted to 24th Dec)
-                if parser_mode == "TOTAL" and task["date"] < TARGET_SYNC_BOUNDARY:
-                    print(f" 🏁 Epoch Boundary Reached: Task date ({task['date']}) is older than safe V9 launch limit. Initiating sequence shutdown.")
+                if not should_continue:
+                    break
+
+                if MAX_PAGES_LIMIT > 0 and page_number >= MAX_PAGES_LIMIT:
+                    print(f" 🏁 SaaS Boundary Reached: Limit of {MAX_PAGES_LIMIT} pages enforced.")
                     should_continue = False
                     break
-                
-                if is_v9_curriculum and task["date"] > TARGET_SYNC_BOUNDARY:
-                    all_scraped_tasks.append(task)
-                    page_filtered_count += 1
-                    
-            print(f" 📄 Page {page_number}: Scraped {len(page_tasks)} tasks. New target v9 tasks: {page_filtered_count}")
-            
-            if not should_continue:
-                break
 
-            # DYNAMIC SAAS / DOCKER BOUNDARY HARD LIMIT CHECK
-            if MAX_PAGES_LIMIT > 0 and page_number >= MAX_PAGES_LIMIT:
-                print(f" 🏁 SaaS Boundary Reached: Rapid sync limit of {MAX_PAGES_LIMIT} pages enforced. Halting pagination loop.")
-                should_continue = False
-                break
+                if parser_mode == "INCREMENTAL" and page_filtered_count == 0 and page_number > 15:
+                    print(" 🏁 Safe depth boundary cleared in incremental tracking matrix. Halting.")
+                    break
 
-            # Smart incremental fallback breaker to avoid deep scans when up to date
-            if parser_mode == "INCREMENTAL" and page_filtered_count == 0 and page_number > 15:
-                print(" 🏁 Safe depth boundary cleared in incremental tracking matrix. Halting iteration loops.")
-                break
-
-            # Locate the pagination control button component directly in the DOM
-            next_button_item = await page.query_selector("li.timeline-pagination_list_item:has(button[aria-label='Go to next page'])")
-            
-            if next_button_item and should_continue:
-                # Force scroll to the specific list item container
-                await next_button_item.scroll_into_view_if_needed()
-                await page.wait_for_timeout(1000)
+                next_button_item = await page.query_selector("li.timeline-pagination_list_item:has(button[aria-label='Go to next page'])")
                 
-                next_button = await next_button_item.query_selector("button")
-                is_disabled = await next_button.get_attribute("disabled") if next_button else "true"
-                
-                if next_button and is_disabled is None:
-                    # Extract first timeline entry signature state prior to executing trigger clicks
-                    first_row = await page.query_selector("tr.timeline-row a")
-                    current_signature = (await first_row.inner_text()).strip() if first_row else ""
+                if next_button_item and should_continue:
+                    await next_button_item.scroll_into_view_if_needed()
+                    await page.wait_for_timeout(1000)
                     
-                    page_number += 1
-                    print(f" 🚀 Executing click sequence for page transition to Page: {page_number}")
-                    await next_button.click()
+                    next_button = await next_button_item.query_selector("button")
+                    is_disabled = await next_button.get_attribute("disabled") if next_button else "true"
                     
-                    try:
-                        await page.wait_for_function(
-                            f"() => {{ const el = document.querySelector('tr.timeline-row a'); return el && el.innerText.strip() !== '{current_signature}'; }}",
-                            timeout=15000
-                        )
-                    except Exception:
-                        await page.wait_for_timeout(4500)
+                    if next_button and is_disabled is None:
+                        first_row = await page.query_selector("tr.timeline-row a")
+                        current_signature = (await first_row.inner_text()).strip() if first_row else ""
+                        
+                        page_number += 1
+                        print(f" 🚀 Executing click sequence for page transition to Page: {page_number}")
+                        await next_button.click()
+                        
+                        try:
+                            await page.wait_for_function(
+                                f"() => {{ const el = document.querySelector('tr.timeline-row a'); return el && el.innerText.strip() !== '{current_signature}'; }}",
+                                timeout=15000
+                            )
+                        except Exception:
+                            await page.wait_for_timeout(4500)
+                    else:
+                        print(" 🏁 Historical terminal pagination node reached successfully (Disabled).")
+                        should_continue = False
                 else:
-                    print(" 🏁 Historical terminal pagination node reached successfully (Target button is disabled).")
+                    print(" 🏁 Historical terminal pagination node reached successfully (Missing).")
                     should_continue = False
-            else:
-                if should_continue:
-                    print(" 🏁 Historical terminal pagination node reached successfully (Target button container missing).")
-                should_continue = False
 
-        # --- Bulk Write Operations & Webhook Execution ---
-        if all_scraped_tasks:
-            print(f"\n 📦 Initializing high-speed processing stream bundle for {len(all_scraped_tasks)} records...")
-            bulk_operations = []
-            for task in all_scraped_tasks:
-                query = {
-                    "username": task["username"], 
-                    "url": task["url"] 
-                }
-                bulk_operations.append(UpdateOne(query, {"$set": task}, upsert=True))
+            # --- Bulk Write Operations & Webhook Execution ---
+            if all_scraped_tasks:
+                print(f"\n 📦 Initializing high-speed processing stream bundle for {len(all_scraped_tasks)} records...")
+                bulk_operations = []
+                for task in all_scraped_tasks:
+                    query = {
+                        "username": task["username"], 
+                        "url": task["url"] 
+                    }
+                    bulk_operations.append(UpdateOne(query, {"$set": task}, upsert=True))
+                    
+                print(" 💾 Writing records directly to MongoDB Atlas cluster target nodes...")
+                result = db["progress"].bulk_write(bulk_operations, ordered=False)
                 
-            print(" 💾 Writing records directly to MongoDB Atlas cluster target nodes...")
-            result = db["progress"].bulk_write(bulk_operations, ordered=False)
-            
-            print("\n=== SYSTEM ARCHITECTURE DATABASES SYNCHRONIZATION SUMMARY ===")
-            print(f" 🎉 New infrastructure records upserted: {result.upserted_count}")
-            print(f" 🔄 Pre-existing records checked / modified: {result.modified_count}")
-            print(f" ✨ Consolidated pipeline payload: {len(all_scraped_tasks)}")
-            print("==============================================================")
-            
-            await flush_backend_cache()
-        else:
-            print("\n  Data architecture validated. Remote Mongo Atlas clusters fully optimized! Cache flush skipped.")
-            
-        await browser.close()
-        print(" 🎉 Parser application lifecycle context finalized cleanly.")
+                print("\n=== SYSTEM ARCHITECTURE DATABASES SYNCHRONIZATION SUMMARY ===")
+                print(f" 🎉 New infrastructure records upserted: {result.upserted_count}")
+                print(f" 🔄 Pre-existing records checked / modified: {result.modified_count}")
+                print(f" ✨ Consolidated pipeline payload: {len(all_scraped_tasks)}")
+                print("==============================================================")
+                
+                await flush_backend_cache()
+            else:
+                print("\n  Data architecture validated. Remote Mongo Atlas clusters fully optimized!")
+                
+            await browser.close()
+            print(" 🎉 Parser application lifecycle context finalized cleanly.")
+
+    except Exception as e:
+        print("\n❌ CRITICAL CRASH: Scraper lifecycle execution sequence encountered an unhandled exception.")
+        print("====== GITHUB ACTIONS DIAGNOSTICS TRANSPARENT ERROR TRACEBACK ======")
+        traceback.print_exc()
+        print("=====================================================================")
+        raise e
 
 if __name__ == "__main__":
     asyncio.run(main())
