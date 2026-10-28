@@ -4,6 +4,7 @@ export interface TranslationKeys {
   noCertificates: string
   worldMapTitle: string
   taskTimelineTitle: string
+  taskTimelineSubtitle: string
   activityCalendarTitle: string
   activityCalendarSubtitle: string
   activityCalendarBadge: string
@@ -54,6 +55,7 @@ export const translations: Record<string, TranslationKeys> = {
     noCertificates: 'No certificates earned yet',
     worldMapTitle: 'Global GIS Infrastructure',
     taskTimelineTitle: 'Live Task Feed',
+    taskTimelineSubtitle: 'Latest curriculum execution telemetry feed',
     activityCalendarTitle: 'Activity Matrix',
 
     // Calendar sub-labels & legends
@@ -119,6 +121,7 @@ export const translations: Record<string, TranslationKeys> = {
     noCertificates: 'Нет полученных сертификатов',
     worldMapTitle: 'Глобальная ГИС-Инфраструктура',
     taskTimelineTitle: 'Лента активных задач',
+    taskTimelineSubtitle: 'Телеметрия последних выполненных задач',
     activityCalendarTitle: 'Матрица активности',
 
     // Подписи календаря и легенды

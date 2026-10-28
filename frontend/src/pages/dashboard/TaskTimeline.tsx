@@ -126,7 +126,7 @@ export default function TaskTimeline() {
             </h3>
           </div>
           <p className="text-[10px] text-slate-400 sm:text-xs">
-            {t.activityCalendarSubtitle}
+            {t.taskTimelineSubtitle}
           </p>
         </div>
         <span
