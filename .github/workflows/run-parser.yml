@@ -44,13 +44,12 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: echo "RUN_MODE=${{ github.event.inputs.parser_mode }}" >> $GITHUB_ENV
 
-      # STEP C: Launch core scraper process utilizing finalized context variables
+      # STEP C: Launch core scraper process utilizing dynamic Atlas queue orchestration
       - name: Execute Scraper Pipeline
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
           CACHE_SECRET_TOKEN: ${{ secrets.CACHE_SECRET_TOKEN }}
           PARSER_MODE: ${{ env.RUN_MODE }}
-          CURRENT_USER_ROLE: admin
           # Active infrastructure deployment route mapping targets
           BACKEND_INTERNAL_URL: 'https://al-devstack-production.up.railway.app'
         run: |

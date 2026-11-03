@@ -31,3 +31,6 @@ ProgressSchema.index(
   { category: 1, date: -1 },
   { partialFilterExpression: { category: { $exists: true } } }
 );
+
+// 3. Multi-User Telemetry Index: Instantly compiles the Live timeline feed sorted chronologically desc
+ProgressSchema.index({ username: 1, date: -1 });

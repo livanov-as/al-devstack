@@ -6,10 +6,12 @@ import {
   Headers,
   Body,
   Res,
+  Req,
   HttpStatus,
+  UseGuards,
   Logger,
 } from '@nestjs/common'
-import { Response } from 'express'
+import { Response, Request } from 'express'
 import {
   ApiOperation,
   ApiResponse,
@@ -19,6 +21,7 @@ import {
 import { InjectConnection } from '@nestjs/mongoose'
 import type { Connection } from 'mongoose' // Explicitly enforce type-only import to resolve ESM runtime crashes
 import { AppService } from './app.service.js'
+import { AuthGuard } from './auth/guards/auth.guard.js'
 
 @ApiTags('Telemetry & Credentials Infrastructure')
 @Controller()
@@ -51,13 +54,13 @@ export class AppController {
   }
 
   @Get('progress/calendar')
-  @ApiOperation({ summary: 'Retrieve 31-day activity synchronization matrix' })
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Retrieve 31-day activity synchronization matrix for authenticated user' })
   @ApiResponse({
     status: 200,
-    description:
-      'Aggregated temporal task completion counters dictionary map',
+    description: 'Aggregated temporal task completion counters dictionary map',
   })
-  async getCalendar(@Query('timezone') timezone?: string) {
+  async getCalendar(@Req() req: Request, @Query('timezone') timezone?: string) {
     let clientTimezone = timezone || 'UTC'
     const timezoneRegex = /^[A-Za-z0-9_\-/]+$/
 
@@ -68,45 +71,54 @@ export class AppController {
       clientTimezone = 'UTC'
     }
 
-    return this.appService.getCalendarStats(clientTimezone)
+    // Extract target username and role from the securely isolated request context mapping
+    const username = req.user!.username
+    const role = req.user!.role
+    return this.appService.getCalendarStats(username, clientTimezone, role)
   }
 
   @Get('progress/timeline')
-  @ApiOperation({ summary: 'Fetch live tracking task stream feed' })
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Fetch live tracking task stream feed for authenticated user' })
   @ApiResponse({
     status: 200,
-    description:
-      'Array containing historical curriculum completions items sorted chronologically desc',
+    description: 'Array containing historical curriculum completions items sorted chronologically desc',
   })
-  async getTimeline() {
-    return this.appService.getTimelineTasks()
+  async getTimeline(@Req() req: Request) {
+    const username = req.user!.username
+    const role = req.user!.role
+    return this.appService.getTimelineTasks(username, role)
   }
 
   @Get('certificates')
+  @UseGuards(AuthGuard)
   @ApiOperation({
-    summary:
-      'List all verified earned credentials collections archived in Atlas',
+    summary: 'List all verified earned credentials collections archived in Atlas for authenticated user',
   })
   @ApiResponse({
     status: 200,
-    description:
-      'Active and legacy certificates array list matching layout indices',
+    description: 'Active and legacy certificates array list matching layout indices',
   })
-  async getCertificates() {
-    return this.appService.getCertificates()
+  async getCertificates(@Req() req: Request) {
+    const username = req.user!.username
+    const role = req.user!.role
+    return this.appService.getCertificates(username, role)
   }
 
   @Get('progress/geo-stats')
+  @UseGuards(AuthGuard)
   @ApiOperation({
-    summary: 'Compile regional GIS progress analytics facets mapping',
+    summary: 'Compile regional GIS progress analytics facets mapping for authenticated user',
   })
   @ApiResponse({
     status: 200,
-    description:
-      'Geographic breakdown schema mapping states matched to freeCodeCamp credentials set rules',
+    description: 'Geographic breakdown schema mapping states matched to freeCodeCamp credentials set rules',
   })
-  async getGeoStats(@Res() res: Response) {
-    const { data, cacheHit } = await this.appService.getGeoStats()
+  async getGeoStats(@Req() req: Request, @Res() res: Response) {
+    const username = req.user!.username
+    const role = req.user!.role
+    // Pass username and active role to service layer to isolate GIS statistics calculations per profile
+    const { data, cacheHit } = await this.appService.getGeoStats(username, role)
     res.setHeader('X-Cache', cacheHit ? 'HIT' : 'MISS')
     return res.status(HttpStatus.OK).json(data)
   }
@@ -122,8 +134,7 @@ export class AppController {
   })
   @ApiResponse({
     status: 401,
-    description:
-      'Unauthorized: Security token authorization validation signatures mismatched',
+    description: 'Unauthorized: Security token authorization validation signatures mismatched',
   })
   async flushCache(
     @Headers('authorization') authHeader: string,

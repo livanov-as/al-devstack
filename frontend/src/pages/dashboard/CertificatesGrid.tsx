@@ -19,7 +19,9 @@ export default function CertificatesGrid() {
   const { data: certs = [], isLoading } = useQuery<ICertificate[]>({
     queryKey: ['certificates-archive'],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/certificates`)
+      const res = await fetch(`${API_BASE_URL}/certificates`, {
+        credentials: 'include',
+      })
       if (!res.ok) {
         throw new Error(t.certLinkOffline || 'Certificates Link Offline')
       }

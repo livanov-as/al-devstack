@@ -45,6 +45,21 @@ export interface TranslationKeys {
   region_north_america: string
   region_south_america: string
   region_australia_oceania: string
+  authTitle: string
+  authSubtitle: string
+  authErrorHeader: string
+  authUsernameLabel: string
+  authPasswordLabel: string
+  authNoticeHeader: string
+  authNoticeBody: string
+  authBtnLogin: string
+  authBtnRegister: string
+  authDividerOr: string
+  authBtnDemo: string
+  authToggleRegister: string
+  authToggleLogin: string
+  logoutTooltip: string
+  authSessionExpired: string
 }
 
 // Strictly typed translation registry matching supported language domains
@@ -114,6 +129,24 @@ export const translations: Record<string, TranslationKeys> = {
     region_north_america: 'Python Certification',
     region_south_america: 'Relational Databases Certification',
     region_australia_oceania: 'Back-End Development and APIs Certification',
+
+    // Authentication & Core Gatekeeper Elements
+    authTitle: 'al-devstack // core',
+    authSubtitle: 'Telemetry Authentication Boundary Layer',
+    authErrorHeader: '// CRITICAL STATUS ALERT',
+    authUsernameLabel: 'freeCodeCamp Username',
+    authPasswordLabel: 'Secure Password',
+    authNoticeHeader: '// SYNCHRONIZATION LATENCY NOTICE',
+    authNoticeBody:
+      'Initial telemetry profiling tasks (Total Sync) require roughly 2 to 4 minutes due to anti-bot jitter masking safeguards.',
+    authBtnLogin: 'Initialize Session',
+    authBtnRegister: 'Provision Account',
+    authDividerOr: 'Or',
+    authBtnDemo: 'Explore Sandbox (Demo Mode)',
+    authToggleRegister: "Don't have an active cluster profile? Provision here",
+    authToggleLogin: 'Already authorized in active cluster? Mount profile',
+    logoutTooltip: 'Terminate active telemetry session',
+    authSessionExpired: 'Session expired. Telemetry authentication required.',
   },
   ru: {
     // Заголовки компонентов
@@ -179,5 +212,24 @@ export const translations: Record<string, TranslationKeys> = {
     region_north_america: 'Python Certification',
     region_south_america: 'Relational Databases Certification',
     region_australia_oceania: 'Back-End Development and APIs Certification',
+
+    // Элементы аутентификации и защиты ядра
+    authTitle: 'al-devstack // ядро',
+    authSubtitle: 'Инфраструктура аутентификации телеметрии',
+    authErrorHeader: '// КРИТИЧЕСКИЙ СБОЙ СИСТЕМЫ',
+    authUsernameLabel: 'Имя пользователя freeCodeCamp',
+    authPasswordLabel: 'Надежный пароль',
+    authNoticeHeader: '// ПРЕДУПРЕЖДЕНИЕ О ЗАДЕРЖКЕ',
+    authNoticeBody:
+      'Первичная синхронизация профиля (Total Sync) занимает от 2 до 4 минут из-за работы алгоритмов маскировки парсера.',
+    authBtnLogin: 'Инициализировать сессию',
+    authBtnRegister: 'Создать аккаунт',
+    authDividerOr: 'Или',
+    authBtnDemo: 'Войти в Демо-режим (Песочница)',
+    authToggleRegister: 'Нет активного профиля в кластере? Создать здесь',
+    authToggleLogin: 'Профиль уже создан? Подключить сессию',
+    logoutTooltip: 'Завершить активную сессию телеметрии',
+    authSessionExpired:
+      'Время сессии истекло. Требуется повторная авторизация телеметрии.',
   },
 }

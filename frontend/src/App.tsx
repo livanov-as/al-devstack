@@ -1,10 +1,14 @@
 import { Component, ErrorInfo, ReactNode } from 'react'
 import LanguageProvider from './context/LanguageProvider'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import ProtectedRoute from './components/ProtectedRoute'
+import AuthForm from './components/AuthForm'
 import { useLanguage } from './hooks/useLanguage'
 import ActivityCalendar from './pages/dashboard/ActivityCalendar'
 import TaskTimeline from './pages/dashboard/TaskTimeline'
 import WorldMap from './pages/dashboard/WorldMap'
 import CertificatesGrid from './pages/dashboard/CertificatesGrid'
+import { LogOut } from 'lucide-react'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -15,7 +19,6 @@ interface ErrorBoundaryState {
   hasError: boolean
 }
 
-// Explicit class-based Error Boundary system implementation for React 19 runtime safety
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = {
     hasError: false,
@@ -51,7 +54,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 function Header() {
-  const { lang, setLang } = useLanguage()
+  const { t, lang, setLang } = useLanguage()
+  const { logout, user } = useAuth()
+
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-slate-800 bg-slate-900/50 px-4 py-4 backdrop-blur-md md:px-6">
       <div className="flex items-center gap-3">
@@ -61,13 +66,27 @@ function Header() {
         <span className="rounded-full border border-slate-700/50 bg-slate-800 px-2.5 py-0.5 font-mono text-[10px] font-medium tracking-tight text-slate-400 uppercase">
           dashboard
         </span>
+        {user && (
+          <span className="hidden rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 font-mono text-[10px] text-emerald-400 sm:inline">
+            // {user.username} ({user.role})
+          </span>
+        )}
       </div>
-      <button
-        onClick={() => setLang(lang === 'en' ? 'ru' : 'en')}
-        className="cursor-pointer rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-all duration-200 hover:border-emerald-500/50 hover:text-emerald-400 active:scale-95"
-      >
-        {lang.toUpperCase()}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setLang(lang === 'en' ? 'ru' : 'en')}
+          className="cursor-pointer rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-all duration-200 hover:border-emerald-500/50 hover:text-emerald-400 active:scale-95"
+        >
+          {lang.toUpperCase()}
+        </button>
+        <button
+          onClick={logout}
+          title={t.logoutTooltip}
+          className="flex cursor-pointer items-center justify-center rounded-md border border-slate-700 bg-slate-800 p-1.5 text-slate-400 transition-all duration-200 hover:border-rose-500/50 hover:text-rose-400 active:scale-95"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </div>
     </header>
   )
 }
@@ -75,17 +94,13 @@ function Header() {
 function DashboardContent() {
   return (
     <div className="mx-auto h-full min-h-screen overflow-y-auto p-4 md:p-6 lg:h-[calc(100vh-64px)] lg:min-h-0 lg:overflow-hidden">
-      {/* Upgraded grid system breakpoint to lg for explicit tablet optimization */}
       <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-5 pb-2 lg:grid-cols-12">
-        {/* LEFT INFOGRAPHICS ZONE (Approx. 66% width matrix) - Map & Calendar cluster */}
         <div className="flex h-full flex-col space-y-5 lg:col-span-8 lg:overflow-hidden">
-          {/* Main geographic progress tracking engine mapping workspace */}
           <div className="flex min-h-0 flex-1 flex-col">
             <ErrorBoundary>
               <WorldMap />
             </ErrorBoundary>
           </div>
-          {/* Horizontally stretched localized 31-day activity strip */}
           <div className="shrink-0">
             <ErrorBoundary>
               <ActivityCalendar />
@@ -93,15 +108,12 @@ function DashboardContent() {
           </div>
         </div>
 
-        {/* RIGHT LIVE TERMINAL ZONE (Approx. 33% width matrix) - Synchronized processing feeds */}
         <div className="flex h-full flex-col space-y-5 lg:col-span-4 lg:max-h-full lg:overflow-hidden">
-          {/* Top segment: Live tasks stream telemetry stream */}
           <div className="min-h-0 flex-1">
             <ErrorBoundary>
               <TaskTimeline />
             </ErrorBoundary>
           </div>
-          {/* Bottom segment: Earned credentials certified archive */}
           <div className="min-h-0 flex-1">
             <ErrorBoundary>
               <CertificatesGrid />
@@ -116,12 +128,16 @@ function DashboardContent() {
 export default function App() {
   return (
     <LanguageProvider>
-      <div className="h-full min-h-screen w-screen overflow-x-hidden bg-[#020617] text-slate-100 antialiased selection:bg-emerald-500/20 selection:text-emerald-400 lg:h-screen lg:overflow-hidden">
-        <Header />
-        <main>
-          <DashboardContent />
-        </main>
-      </div>
+      <AuthProvider>
+        <ProtectedRoute fallback={<AuthForm />}>
+          <div className="h-full min-h-screen w-screen overflow-x-hidden bg-[#020617] text-slate-100 antialiased selection:bg-emerald-500/20 selection:text-emerald-400 lg:h-screen lg:overflow-hidden">
+            <Header />
+            <main>
+              <DashboardContent />
+            </main>
+          </div>
+        </ProtectedRoute>
+      </AuthProvider>
     </LanguageProvider>
   )
 }

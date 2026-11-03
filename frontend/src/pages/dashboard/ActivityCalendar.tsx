@@ -26,6 +26,9 @@ export default function ActivityCalendar() {
       try {
         const res = await fetch(
           `${API_BASE_URL}/progress/calendar?timezone=${encodeURIComponent(clientTimezone)}`,
+          {
+            credentials: 'include',
+          },
         )
         if (!res.ok) throw new Error('Calendar API Link Offline')
         const json = await res.json()
@@ -43,7 +46,7 @@ export default function ActivityCalendar() {
     placeholderData: {}, // Safe static hydration fallback barrier
   })
 
-  // 2. Generate a flat sequential array tracking exactly the last 31 days
+  // Generate a flat sequential array tracking exactly the last 31 days
   const calendarDays = useMemo<CalendarDay[]>(() => {
     const result: CalendarDay[] = []
     const totalTargetDays = 31

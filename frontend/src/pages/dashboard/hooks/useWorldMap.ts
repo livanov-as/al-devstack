@@ -54,7 +54,9 @@ export function useWorldMap() {
   } = useQuery<IGisData>({
     queryKey: ['geo-stats'],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/progress/geo-stats`)
+      const res = await fetch(`${API_BASE_URL}/progress/geo-stats`, {
+        credentials: 'include',
+      })
       if (!res.ok) throw new Error('GIS Link Offline')
       return res.json()
     },

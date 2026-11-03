@@ -2,6 +2,8 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Certificate, CertificateSchema } from './schemas/certificate.schema.js';
 import { Progress, ProgressSchema } from './schemas/progress.schema.js';
+import { User, UserSchema } from './schemas/user.schema.js';
+import { AuthModule } from './auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import path from 'path';
@@ -21,7 +23,11 @@ if (!process.env.MONGO_URI) {
     MongooseModule.forFeature([
       { name: Certificate.name, schema: CertificateSchema },
       { name: Progress.name, schema: ProgressSchema },
+      { name: User.name, schema: UserSchema },
     ]),
+
+    // Integrate the dedicated identity authentication sub-system module
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -34,6 +34,7 @@ dist-ssr/
 .env
 clear-db.js
 get-categories.js
+fcc_prod_snapshot.json
 
 # === AI Context & Temporary Files ===
 repomix-output.*

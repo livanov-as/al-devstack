@@ -13,7 +13,25 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const PORT = process.env.PORT || 5000;
 
-  // Strict whitelist configuration mapping for safe cross-origin requests
+  // Zero-Dependency High-Performance HTTP Cookie Parser Middleware Integration
+  app.use((req: any, res: any, next: any) => {
+    req.cookies = {};
+    const rawCookies = req.headers.cookie;
+    
+    if (rawCookies) {
+      rawCookies.split(';').forEach((cookie: string) => {
+        const parts = cookie.split('=');
+        const name = parts[0].trim();
+        const value = parts.slice(1).join('=');
+        if (name) {
+          req.cookies[name] = decodeURIComponent(value);
+        }
+      });
+    }
+    next();
+  });
+
+  // Enhanced dynamic whitelist configuration mapping for safe cross-origin requests
   const allowedOrigins = [
     'http://localhost:5173',
     'https://al-devstack.vercel.app',
@@ -21,12 +39,15 @@ async function bootstrap() {
 
   app.enableCors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps, curl, or internal server-to-server documentation tools)
+      // or if the origin is explicitly included in our production/dev whitelist infrastructure
+      if (!origin || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS security policies'));
       }
     },
+    credentials: true, // Crucial for allowing secure HttpOnly session cookies transit across cloud networks
   });
 
   // Set global routing prefix to match legacy infrastructure contracts

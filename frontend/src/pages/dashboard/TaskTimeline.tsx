@@ -33,7 +33,9 @@ export default function TaskTimeline() {
     queryKey: ['progress-timeline'],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/progress/timeline`)
+        const res = await fetch(`${API_BASE_URL}/progress/timeline`, {
+          credentials: 'include',
+        })
         if (!res.ok) throw new Error('API Error')
         const json = await res.json()
 
