@@ -80,7 +80,7 @@ function Header() {
           {lang.toUpperCase()}
         </button>
         <button
-          onClick={logout}
+          onClick={() => logout()}
           title={t.logoutTooltip}
           className="flex cursor-pointer items-center justify-center rounded-md border border-slate-700 bg-slate-800 p-1.5 text-slate-400 transition-all duration-200 hover:border-rose-500/50 hover:text-rose-400 active:scale-95"
         >
