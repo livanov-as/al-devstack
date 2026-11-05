@@ -14,6 +14,8 @@ on:
         options:
           - INCREMENTAL
           - TOTAL
+  repository_dispatch:
+    types: [trigger-user-sync]
 
 jobs:
   run-parser:
@@ -44,7 +46,17 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: echo "RUN_MODE=${{ github.event.inputs.parser_mode }}" >> $GITHUB_ENV
 
-      # STEP C: Launch core scraper process utilizing dynamic Atlas queue orchestration
+      # STEP C: Resolve target username from API repository dispatch payload if available
+      - name: Resolve Target Telemetry User
+        run: |
+          if [ "${{ github.event_name }}" = "repository_dispatch" ]; then
+            echo "TARGET_USER=${{ github.event.client_payload.username }}" >> $GITHUB_ENV
+            echo "RUN_MODE=TOTAL" >> $GITHUB_ENV
+          else
+            echo "TARGET_USER=" >> $GITHUB_ENV
+          fi
+
+      # STEP D: Launch core scraper process utilizing dynamic Atlas queue orchestration
       - name: Execute Scraper Pipeline
         env:
           MONGO_URI: ${{ secrets.MONGO_URI }}
@@ -54,4 +66,10 @@ jobs:
           BACKEND_INTERNAL_URL: 'https://al-devstack-production.up.railway.app'
         run: |
           cd parser
-          python main.py
+          if [ -n "$TARGET_USER" ]; then
+            echo " 📡 Remote execution trigger caught for user: $TARGET_USER"
+            python -u main.py "$TARGET_USER"
+          else
+            echo " ⏳ Standard cycle execution active for entire telemetry database queue"
+            python -u main.py
+          fi

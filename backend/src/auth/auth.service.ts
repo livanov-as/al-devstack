@@ -10,16 +10,11 @@ import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import type { Connection } from 'mongoose'
 import * as crypto from 'crypto'
-import { spawn } from 'child_process'
-import path from 'path'
-import { fileURLToPath } from 'url'
 import { User, UserDocument, UserRole } from '../schemas/user.schema.js'
 import { Progress, ProgressDocument } from '../schemas/progress.schema.js'
 import { Certificate, CertificateDocument } from '../schemas/certificate.schema.js'
 import { AuthCredentialsDto } from './dto/auth-credentials.dto.js'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+import { CryptoService } from './crypto.service.js'
 
 @Injectable()
 export class AuthService {
@@ -30,6 +25,7 @@ export class AuthService {
     @InjectModel(Progress.name) private progressModel: Model<ProgressDocument>,
     @InjectModel(Certificate.name) private certificateModel: Model<CertificateDocument>,
     @InjectConnection() private readonly connection: Connection,
+    private readonly cryptoService: CryptoService,
   ) {}
 
   /**
@@ -44,11 +40,9 @@ export class AuthService {
       throw new ConflictException(`Username "${username}" already exists`)
     }
 
-    // Determine target SaaS role based on environment configuration overrides
     const initialAdminName = process.env.ADMIN_INITIAL_USERNAME || 'livanov-as'
     const targetRole = username === initialAdminName ? UserRole.ADMIN : UserRole.USER
 
-    // FinOps capacity control: Rotate only if the registering account is standard user
     if (targetRole === UserRole.USER) {
       const userCount = await this.userModel.countDocuments({ role: UserRole.USER })
       if (userCount >= 10) {
@@ -58,7 +52,7 @@ export class AuthService {
     }
 
     const salt = crypto.randomBytes(16).toString('hex')
-    const passwordHash = this.hashPassword(password, salt)
+    const passwordHash = this.cryptoService.hashPassword(password, salt)
     const storedHashWithSalt = `${salt}:${passwordHash}`
 
     try {
@@ -69,7 +63,7 @@ export class AuthService {
       })
       const savedUser = await newUser.save()
 
-      // Spawn immediate asynchronous background metadata sync parser pipeline
+      // Dispatch explicit asynchronous background metadata sync pipeline via GitHub API
       this.triggerBackgroundParserSync(username)
 
       return savedUser
@@ -80,39 +74,53 @@ export class AuthService {
   }
 
   /**
-   * Spawns an isolated background process to warm up freeCodeCamp telemetry metrics.
-   * Utilizes spawn streams for live real-time pagination log outputs.
+   * Dispatches an isolated cloud background automation task via GitHub Actions Repository Dispatch API.
+   * Offloads heavy Playwright scrapers entirely to GitHub infrastructure protecting Railway nodes.
    */
   private triggerBackgroundParserSync(username: string): void {
-    const parserScriptPath = path.resolve(__dirname, '../../../../parser/main.py')
-    this.logger.log(`Infrastructure: Spawning background parser process for user "${username}".`)
+    const githubToken = process.env.GITHUB_TOKEN
+    const githubRepo = process.env.GITHUB_REPOSITORY // Expected format: 'owner/repo'
 
-    const pythonBinary = '../parser/venv/bin/python3'
-    const parserProcess = spawn(pythonBinary, [parserScriptPath, username])
+    if (!githubToken || !githubRepo) {
+      this.logger.warn(
+        `Cloud Dispatch Bypass: GITHUB_TOKEN or GITHUB_REPOSITORY variable is missing. Cloud parser trigger aborted.`,
+      )
+      return
+    }
 
-    // Stream real-time stdout chunks directly into the backend logging infrastructure matrix
-    parserProcess.stdout.on('data', (data: Buffer) => {
-      const logLine = data.toString().trim()
-      if (logLine) {
-        this.logger.log(`[Parser Stream Out] [${username}]: ${logLine}`)
-      }
+    this.logger.log(`Infrastructure: Triggering external GitHub Actions workflow dispatch for user "${username}".`)
+
+    fetch(`https://github.com{githubRepo}/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': `Bearer ${githubToken}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        event_type: 'trigger-user-sync',
+        client_payload: {
+          username: username,
+        },
+      }),
     })
-
-    // Stream real-time stderr chunks directly into the backend warnings system layer
-    parserProcess.stderr.on('data', (data: Buffer) => {
-      const errorLine = data.toString().trim()
-      if (errorLine) {
-        this.logger.warn(`[Parser Stream Err] [${username}]: ${errorLine}`)
-      }
-    })
-
-    parserProcess.on('close', (code) => {
-      this.logger.log(`Infrastructure: Background parser process for "${username}" exited with status code ${code}.`)
-    })
-
-    parserProcess.on('error', (error) => {
-      this.logger.error(`Infrastructure: Failed to spawn background parser process for "${username}": ${error.message}`)
-    })
+      .then((response) => {
+        if (response.ok) {
+          this.logger.log(`Infrastructure: GitHub cloud execution pipeline successfully orchestrated for "${username}".`)
+        } else {
+          response.text().then((errText) => {
+            this.logger.error(
+              `Infrastructure Error: GitHub API rejected workflow trigger dispatch. Status: ${response.status}. Payload: ${errText}`,
+            )
+          })
+        }
+      })
+      .catch((error) => {
+        this.logger.error(
+          `Infrastructure Crash: Failed to dispatch cloud synchronization request payload for "${username}": ${error.message}`,
+        )
+      })
   }
 
   /**
@@ -124,12 +132,11 @@ export class AuthService {
 
     let user = await this.userModel.findOne({ username }).lean()
     
-    // Auto-Provisioning Core Layer for the FinOps Sandbox environment
     if (!user && username === 'recruiter-tech-lead') {
       this.logger.log(`FinOps Sandbox: Auto-provisioning target demo profile "${username}" in active cluster.`)
       
       const salt = crypto.randomBytes(16).toString('hex')
-      const passwordHash = this.hashPassword(password, salt)
+      const passwordHash = this.cryptoService.hashPassword(password, salt)
       const storedHashWithSalt = `${salt}:${passwordHash}`
       
       try {
@@ -151,27 +158,17 @@ export class AuthService {
     }
 
     const [salt, storedHash] = user.passwordHash.split(':')
-    const incomingHash = this.hashPassword(password, salt)
+    const incomingHash = this.cryptoService.hashPassword(password, salt)
 
-    const bufferStored = Buffer.from(storedHash, 'hex')
-    const bufferIncoming = Buffer.from(incomingHash, 'hex')
-
-    // Strictly enforce Uint8Array boundaries to fully satisfy Mongoose & NestJS compiler architectures
-    const isPasswordMatch = crypto.timingSafeEqual(
-      new Uint8Array(bufferStored),
-      new Uint8Array(bufferIncoming)
-    )
-
-    if (!isPasswordMatch) {
+    if (!this.cryptoService.comparePasswords(storedHash, incomingHash)) {
       throw new UnauthorizedException('Invalid security credentials provided')
     }
 
-    // Generate lightweight customized cryptographically signed JSON Web Token
     const jwtPayload = {
       username: user.username,
       role: user.role,
     }
-    const token = this.generateJwt(jwtPayload)
+    const token = this.cryptoService.generateJwt(jwtPayload)
 
     return {
       token,
@@ -190,7 +187,6 @@ export class AuthService {
       throw new BadRequestException(`Target user '${targetUsername}' does not exist inside active cluster nodes.`)
     }
 
-    // Safeguard Implementation: Block administrative self-demotion if no other admins exist
     if (targetUser.role === UserRole.ADMIN && newRole !== UserRole.ADMIN) {
       const activeAdminCount = await this.userModel.countDocuments({ role: UserRole.ADMIN })
       if (activeAdminCount <= 1) {
@@ -215,85 +211,10 @@ export class AuthService {
   }
 
   /**
-   * Cryptographically utility to generate a secure deterministic PBKDF2 password hash.
-   */
-  private hashPassword(password: string, salt: string): string {
-    return crypto
-      .pbkdf2Sync(password, salt, 1000, 64, 'sha512')
-      .toString('hex')
-  }
-
-  /**
-   * Compiles and signs a manual zero-dependency secure JWT token compliant with OAuth standards.
-   */
-  private generateJwt(payload: Record<string, any>): string {
-    const secret = process.env.CACHE_SECRET_TOKEN || 'fallback_jwt_secret_token_key'
-    const header = { alg: 'HS256', typ: 'JWT' }
-    
-    const expandedPayload = {
-      ...payload,
-      exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24,
-    }
-
-    const toBase64Url = (obj: Record<string, any>) =>
-      Buffer.from(JSON.stringify(obj))
-        .toString('base64')
-        .replace(/=/g, '')
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-
-    const encodedHeader = toBase64Url(header)
-    const encodedPayload = toBase64Url(expandedPayload)
-
-    const signature = crypto
-      .createHmac('sha256', secret)
-      .update(`${encodedHeader}.${encodedPayload}`)
-      .digest('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-
-    return `${encodedHeader}.${encodedPayload}.${signature}`
-  }
-
-  /**
-   * Validates incoming raw JWT string signatures against active environment context tokens.
+   * Proxy validation call directly executing underlying verification mechanics of CryptoService layer.
    */
   verifyJwt(token: string): Record<string, any> | null {
-    const secret = process.env.CACHE_SECRET_TOKEN || 'fallback_jwt_secret_token_key'
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-
-    const [encodedHeader, encodedPayload, signature] = parts
-
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(`${encodedHeader}.${encodedPayload}`)
-      .digest('base64')
-      .replace(/=/g, '')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-
-    if (signature !== expectedSignature) {
-      return null
-    }
-
-    try {
-      const decodedPayload = JSON.parse(
-        Buffer.from(
-          encodedPayload.replace(/-/g, '+').replace(/_/g, '/'),
-          'base64'
-        ).toString('utf-8')
-      )
-
-      if (decodedPayload.exp && Date.now() / 1000 > decodedPayload.exp) {
-        return null
-      }
-
-      return decodedPayload
-    } catch {
-      return null
-    }
+    return this.cryptoService.verifyJwt(token)
   }
 
   /**
