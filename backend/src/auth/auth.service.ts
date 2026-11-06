@@ -97,6 +97,7 @@ export class AuthService {
         'Authorization': `Bearer ${githubToken}`,
         'X-GitHub-Api-Version': '2022-11-28',
         'Content-Type': 'application/json',
+        'User-Agent': 'al-devstack',
       },
       body: JSON.stringify({
         event_type: 'trigger-user-sync',
