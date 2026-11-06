@@ -10,6 +10,7 @@ import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
 import type { Connection } from 'mongoose'
 import * as crypto from 'crypto'
+import * as https from 'https'
 import { User, UserDocument, UserRole } from '../schemas/user.schema.js'
 import { Progress, ProgressDocument } from '../schemas/progress.schema.js'
 import { Certificate, CertificateDocument } from '../schemas/certificate.schema.js'
@@ -76,6 +77,7 @@ export class AuthService {
   /**
    * Dispatches an isolated cloud background automation task via GitHub Actions Repository Dispatch API.
    * Offloads heavy Playwright scrapers entirely to GitHub infrastructure protecting Railway nodes.
+   * Utilizes zero-dependency native https module to safely bypass Railway network engine flaws.
    */
   private triggerBackgroundParserSync(username: string): void {
     const githubToken = process.env.GITHUB_TOKEN
@@ -90,38 +92,53 @@ export class AuthService {
 
     this.logger.log(`Infrastructure: Triggering external GitHub Actions workflow dispatch for user "${username}".`)
 
-    fetch(`https://github.com{githubRepo}/dispatches`, {
+    const payload = JSON.stringify({
+      event_type: 'trigger-user-sync',
+      client_payload: {
+        username: username,
+      },
+    })
+
+    const options: https.RequestOptions = {
+      hostname: '://github.com',
+      path: `/repos/${githubRepo}/dispatches`,
       method: 'POST',
       headers: {
         'Accept': 'application/vnd.github+json',
         'Authorization': `Bearer ${githubToken}`,
         'X-GitHub-Api-Version': '2022-11-28',
         'Content-Type': 'application/json',
-        'User-Agent': 'al-devstack',
+        'User-Agent': 'al-devstack-backend-service', // Required by GitHub API boundary rules
+        'Content-Length': Buffer.byteLength(payload),
       },
-      body: JSON.stringify({
-        event_type: 'trigger-user-sync',
-        client_payload: {
-          username: username,
-        },
-      }),
-    })
-      .then((response) => {
-        if (response.ok) {
+    }
+
+    const req = https.request(options, (res) => {
+      let responseBody = ''
+
+      res.on('data', (chunk) => {
+        responseBody += chunk
+      })
+
+      res.on('end', () => {
+        if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
           this.logger.log(`Infrastructure: GitHub cloud execution pipeline successfully orchestrated for "${username}".`)
         } else {
-          response.text().then((errText) => {
-            this.logger.error(
-              `Infrastructure Error: GitHub API rejected workflow trigger dispatch. Status: ${response.status}. Payload: ${errText}`,
-            )
-          })
+          this.logger.error(
+            `Infrastructure Error: GitHub API rejected workflow trigger dispatch. Status: ${res.statusCode}. Payload: ${responseBody}`,
+          )
         }
       })
-      .catch((error) => {
-        this.logger.error(
-          `Infrastructure Crash: Failed to dispatch cloud synchronization request payload for "${username}": ${error.message}`,
-        )
-      })
+    })
+
+    req.on('error', (error) => {
+      this.logger.error(
+        `Infrastructure Crash: Failed to dispatch cloud synchronization request payload for "${username}": ${error.message}`,
+      )
+    })
+
+    req.write(payload)
+    req.end()
   }
 
   /**
