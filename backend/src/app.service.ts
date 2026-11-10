@@ -3,6 +3,7 @@ import {
   InternalServerErrorException,
   UnauthorizedException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common'
 import { InjectModel } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
@@ -84,7 +85,7 @@ function compileAdaptiveMockPipeline() {
 }
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name)
   private geoStatsCache: Record<string, any> = {}
 
@@ -94,6 +95,19 @@ export class AppService {
     @InjectModel(Progress.name)
     private progressModel: Model<ProgressDocument>,
   ) {}
+
+  /**
+   * Technical lifecycle hook to strictly force compile critical indices 
+   * inside MongoDB Atlas cluster directly upon application boot sequence.
+   */
+  async onModuleInit() {
+    try {
+      await this.progressModel.ensureIndexes()
+      this.logger.log('🚀 Mongoose indices strictly enforced for Telemetry Tasks progress track.')
+    } catch (error) {
+      this.logger.error(`Failed to force populate progress schemas indexes: ${(error as Error).message}`)
+    }
+  }
 
   /**
    * Aggregates and groups user activity history over the last 31 days directly in the database.

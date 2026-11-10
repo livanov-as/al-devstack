@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
   BadRequestException,
   Logger,
+  OnModuleInit,
 } from '@nestjs/common'
 import { InjectModel, InjectConnection } from '@nestjs/mongoose'
 import { Model } from 'mongoose'
@@ -18,7 +19,7 @@ import { AuthCredentialsDto } from './dto/auth-credentials.dto.js'
 import { CryptoService } from './crypto.service.js'
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   private readonly logger = new Logger(AuthService.name)
 
   constructor(
@@ -28,6 +29,19 @@ export class AuthService {
     @InjectConnection() private readonly connection: Connection,
     private readonly cryptoService: CryptoService,
   ) {}
+
+  /**
+   * Technical lifecycle hook to strictly enforce immediate index creation
+   * within MongoDB Atlas during early DI container bootstrap orchestration.
+   */
+  async onModuleInit() {
+    try {
+      await this.userModel.ensureIndexes()
+      this.logger.log('🚀 Mongoose indices strictly enforced for Users registry core.')
+    } catch (error) {
+      this.logger.error(`Failed to force populate user schemas indexes: ${(error as Error).message}`)
+    }
+  }
 
   /**
    * Registers a new account. Assigns ADMIN role if username matches system configuration.

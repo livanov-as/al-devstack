@@ -32,15 +32,22 @@ def get_mongo_db():
     return client["al-devstack"]
 
 
-def fetch_active_telemetry_queue(db) -> list:
+def fetch_active_telemetry_queue(db, target_username: str = None) -> list:
     """
     Queries MongoDB Atlas to dynamically build the execution processing queue.
     Strictly filters out sandbox/demo accounts and caps total size to 11 for FinOps safety.
+    Supports targeted single-user scraping if target_username parameter is provided.
     """
     try:
-        # Fetch standard USER and ADMIN profiles, explicitly ignoring the automated sandbox boundary
+        # Build query criteria ensuring FinOps Guard blocks the automated sandbox boundary
+        query_filter = {"username": {"$ne": "recruiter-tech-lead"}}
+        
+        if target_username:
+            query_filter["username"] = target_username
+            print(f" 🎯 Targeted Queue Filter: Isolated queue route specifically for user '{target_username}'.")
+
         cursor = db["users"].find(
-            {"username": {"$ne": "recruiter-tech-lead"}},
+            query_filter,
             {"username": 1, "role": 1}
         ).sort([("createdAt", 1)]).limit(11)
         
@@ -152,12 +159,12 @@ async def flush_backend_cache():
         print(f" ⚠️ Webhook Exception: Failed to dispatch cache-flush trigger payload ({str(e)}). Pipeline preserved.")
 
 
-async def main():
+async def main(target_username: str = None):
     print(" 🚀 Starting global asynchronous multi-user HTML scraper matrix...")
     
     try:
         db = get_mongo_db()
-        users_queue = fetch_active_telemetry_queue(db)
+        users_queue = fetch_active_telemetry_queue(db, target_username)
         
         if not users_queue:
             print(" 🛑 Active telemetry queue is empty. Lifecycle workflow halted.")
@@ -355,4 +362,6 @@ async def main():
         raise e
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Extracted username string parameter mapped sequentially from sys args execution context boundary
+    input_username = sys.argv[1] if len(sys.argv) > 1 else None
+    asyncio.run(main(input_username))

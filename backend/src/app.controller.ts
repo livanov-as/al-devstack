@@ -8,6 +8,7 @@ import {
   Res,
   Req,
   HttpStatus,
+  HttpCode,
   UseGuards,
   Logger,
 } from '@nestjs/common'
@@ -124,6 +125,7 @@ export class AppController {
   }
 
   @Post('progress/cache-flush')
+  @HttpCode(HttpStatus.OK)
   @ApiBearerAuth('BearerAuth')
   @ApiOperation({
     summary: 'Invalidate in-memory regional GIS analytics stats cache',
