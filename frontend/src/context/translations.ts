@@ -60,6 +60,9 @@ export interface TranslationKeys {
   authToggleLogin: string
   logoutTooltip: string
   authSessionExpired: string
+  syncingTitle: string
+  syncingSubtitle: string
+  syncingHint: string
 }
 
 // Strictly typed translation registry matching supported language domains
@@ -147,6 +150,12 @@ export const translations: Record<string, TranslationKeys> = {
     authToggleLogin: 'Already authorized in active cluster? Mount profile',
     logoutTooltip: 'Terminate active telemetry session',
     authSessionExpired: 'Session expired. Telemetry authentication required.',
+
+    // Live Telemetry Synchronization Overlay
+    syncingTitle: 'freeCodeCamp Satellite Sync Active...',
+    syncingSubtitle:
+      'Scraping curriculum telemetry & verified certificates in cloud queue',
+    syncingHint: '// AUTO-REFRESH VIA WEBSOCKET UPLINK ENABLED',
   },
   ru: {
     // Заголовки компонентов
@@ -231,5 +240,11 @@ export const translations: Record<string, TranslationKeys> = {
     logoutTooltip: 'Завершить активную сессию телеметрии',
     authSessionExpired:
       'Время сессии истекло. Требуется повторная авторизация телеметрии.',
+
+    // Оверлей живой синхронизации телеметрии
+    syncingTitle: 'Идет синхронизация freeCodeCamp...',
+    syncingSubtitle:
+      'Сбор телеметрии прогресса и сертификатов в облачной очереди',
+    syncingHint: '// АВТООБНОВЛЕНИЕ ПО WEBSOCKET-КАНАЛУ АКТИВНО',
   },
 }

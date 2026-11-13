@@ -1,6 +1,8 @@
-import { Component, ErrorInfo, ReactNode } from 'react'
+import { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { io } from 'socket.io-client'
 import LanguageProvider from './context/LanguageProvider'
-import { AuthProvider, useAuth } from './context/AuthContext'
+import { AuthProvider, useAuth, UserRole } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AuthForm from './components/AuthForm'
 import { useLanguage } from './hooks/useLanguage'
@@ -8,7 +10,13 @@ import ActivityCalendar from './pages/dashboard/ActivityCalendar'
 import TaskTimeline from './pages/dashboard/TaskTimeline'
 import WorldMap from './pages/dashboard/WorldMap'
 import CertificatesGrid from './pages/dashboard/CertificatesGrid'
-import { LogOut } from 'lucide-react'
+import { IGisData } from './pages/dashboard/hooks/useWorldMap'
+import { API_BASE_URL } from './config'
+import { LogOut, Radio } from 'lucide-react'
+
+const WS_SERVER_URL = import.meta.env.DEV
+  ? 'http://localhost:5000'
+  : 'https://al-devstack-production.up.railway.app'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -92,8 +100,110 @@ function Header() {
 }
 
 function DashboardContent() {
+  const { t } = useLanguage()
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [syncProgress, setSyncProgress] = useState<number>(0)
+  const [isCompletingSync, setIsCompletingSync] = useState<boolean>(false)
+
+  // Read cached GIS sync state from React Query without issuing duplicate requests
+  const { data: gisData } = useQuery<IGisData>({
+    queryKey: ['geo-stats'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/progress/geo-stats`, {
+        credentials: 'include',
+      })
+      if (!res.ok) throw new Error('GIS Link Offline')
+      return res.json()
+    },
+  })
+
+  const isSyncing = Boolean(gisData?.isSyncing)
+
+  // Adaptive role-based progress estimator (ADMIN: ~19 min, USER: ~4 min)
+  useEffect(() => {
+    if (!isSyncing) {
+      setSyncProgress(0)
+      setIsCompletingSync(false)
+      return
+    }
+
+    const expectedDurationMs =
+      user?.role === UserRole.ADMIN ? 19 * 60 * 1000 : 4 * 60 * 1000
+    const startedAt = Date.now()
+
+    const timer = window.setInterval(() => {
+      const elapsed = Date.now() - startedAt
+      const estimatedPercent = Math.min(
+        96,
+        Math.floor((elapsed / expectedDurationMs) * 100),
+      )
+      setSyncProgress((prev) => Math.max(prev, estimatedPercent))
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [isSyncing, user?.role])
+
+  // Subscribe to isolated user WebSocket room for real-time telemetry updates
+  useEffect(() => {
+    if (!user) return
+
+    const socket = io(WS_SERVER_URL, {
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+    })
+
+    socket.on('telemetry_updated', () => {
+      setSyncProgress(100)
+      setIsCompletingSync(true)
+
+      window.setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ['geo-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['activity-calendar'] })
+        queryClient.invalidateQueries({ queryKey: ['progress-timeline'] })
+        queryClient.invalidateQueries({ queryKey: ['certificates-archive'] })
+        setIsCompletingSync(false)
+      }, 600)
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [user, queryClient])
+
+  const showSyncOverlay = isSyncing || isCompletingSync
+
   return (
-    <div className="mx-auto h-full min-h-screen overflow-y-auto p-4 md:p-6 lg:h-[calc(100vh-64px)] lg:min-h-0 lg:overflow-hidden">
+    <div className="relative mx-auto h-full min-h-screen overflow-y-auto p-4 md:p-6 lg:h-[calc(100vh-64px)] lg:min-h-0 lg:overflow-hidden">
+      {showSyncOverlay && (
+        <div className="animate-fade-in fixed inset-x-0 top-16 bottom-0 z-40 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-md flex-col items-center rounded-xl border border-emerald-500/30 bg-slate-900/90 p-6 text-center shadow-[0_0_30px_rgba(16,185,129,0.12)]">
+            <div className="relative mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/10">
+              <Radio className="h-6 w-6 animate-pulse text-emerald-400" />
+            </div>
+            <h3 className="font-mono text-sm font-bold tracking-wider text-emerald-400 uppercase">
+              {t.syncingTitle}
+            </h3>
+            <p className="mt-2 font-mono text-xs leading-relaxed text-slate-300">
+              {t.syncingSubtitle}
+            </p>
+            <div className="mt-4 flex w-full items-center justify-between font-mono text-[11px] font-bold text-emerald-400">
+              <span>TELEMETRY UPLINK</span>
+              <span>{syncProgress}%</span>
+            </div>
+            <div className="mt-1.5 w-full overflow-hidden rounded-full bg-slate-800 p-0.5">
+              <div
+                style={{ width: `${Math.max(4, syncProgress)}%` }}
+                className="h-1.5 rounded-full bg-emerald-500 transition-all duration-500 ease-out"
+              />
+            </div>
+            <span className="mt-3 font-mono text-[10px] tracking-widest text-slate-500 uppercase">
+              {t.syncingHint}
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="grid h-full max-h-full grid-cols-1 items-stretch gap-5 pb-2 lg:grid-cols-12">
         <div className="flex h-full flex-col space-y-5 lg:col-span-8 lg:overflow-hidden">
           <div className="flex min-h-0 flex-1 flex-col">

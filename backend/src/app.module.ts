@@ -6,6 +6,7 @@ import { User, UserSchema } from './schemas/user.schema.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
+import { ProgressGateway } from './progress/progress.gateway.js';
 import path from 'path';
 import dotenv from 'dotenv';
 
@@ -30,7 +31,7 @@ if (!process.env.MONGO_URI) {
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, ProgressGateway],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

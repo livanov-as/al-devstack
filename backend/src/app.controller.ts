@@ -141,11 +141,12 @@ export class AppController {
   async flushCache(
     @Headers('authorization') authHeader: string,
     @Body('token') tokenFromBody: string,
+    @Body('username') targetUsername?: string,
   ) {
     const tokenFromHeader =
       authHeader && authHeader.startsWith('Bearer ')
         ? authHeader.split(' ')[1]
         : null
-    return this.appService.flushCache(tokenFromHeader, tokenFromBody)
+    return this.appService.flushCache(tokenFromHeader, tokenFromBody, targetUsername)
   }
 }

@@ -13,6 +13,7 @@ export interface IRegionStats {
 export interface IGisData {
   regions: Record<string, IRegionStats>
   globalFullStack: boolean
+  isSyncing?: boolean
 }
 
 export interface ITooltipState {
