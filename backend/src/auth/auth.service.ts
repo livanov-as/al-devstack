@@ -114,7 +114,7 @@ export class AuthService implements OnModuleInit {
     })
 
     const options: https.RequestOptions = {
-      hostname: 'api.github.com',
+      hostname: '://github.com',
       path: `/repos/${githubRepo}/dispatches`,
       method: 'POST',
       headers: {
@@ -247,6 +247,211 @@ export class AuthService implements OnModuleInit {
    */
   verifyJwt(token: string): Record<string, any> | null {
     return this.cryptoService.verifyJwt(token)
+  }
+
+  /**
+   * Retrieves cluster-wide user telemetry and FinOps capacity metrics for the Admin Panel.
+   * Returns an isolated in-memory snapshot for DEMO_USER to eliminate Atlas reads and protect real accounts.
+   */
+  async getAdminUsersTelemetry(operatorRole: UserRole) {
+    if (operatorRole === UserRole.DEMO_USER) {
+      const now = Date.now()
+      const dayMs = 24 * 60 * 60 * 1000
+
+      const sandboxUsers = [
+        {
+          username: 'core-architect',
+          role: UserRole.ADMIN,
+          taskCount: 754,
+          createdAt: new Date(now - 45 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          username: 'alex-frontend',
+          role: UserRole.USER,
+          taskCount: 412,
+          createdAt: new Date(now - 28 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          username: 'maria-fullstack',
+          role: UserRole.USER,
+          taskCount: 618,
+          createdAt: new Date(now - 21 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 1 * dayMs).toISOString(),
+        },
+        {
+          username: 'dev-navigator',
+          role: UserRole.USER,
+          taskCount: 195,
+          createdAt: new Date(now - 16 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 2 * dayMs).toISOString(),
+        },
+        {
+          username: 'elena-ts-coder',
+          role: UserRole.USER,
+          taskCount: 340,
+          createdAt: new Date(now - 11 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 3 * dayMs).toISOString(),
+        },
+        {
+          username: 'max-backend-pro',
+          role: UserRole.USER,
+          taskCount: 529,
+          createdAt: new Date(now - 7 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 4 * dayMs).toISOString(),
+        },
+        {
+          username: 'kate-ui-craft',
+          role: UserRole.USER,
+          taskCount: 88,
+          createdAt: new Date(now - 3 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 12 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          username: 'ivan-cloud-ops',
+          role: UserRole.USER,
+          taskCount: 147,
+          createdAt: new Date(now - 1 * dayMs).toISOString(),
+          lastActiveAt: new Date(now - 30 * 60 * 1000).toISOString(),
+        },
+      ]
+
+      return {
+        isSandbox: true,
+        finops: {
+          activeUserSlots: 7,
+          maxUserSlots: 10,
+          totalUsers: sandboxUsers.length,
+          totalProgressDocs: 3083,
+          totalCertificateDocs: 14,
+          clusterStatus: 'HEALTHY (RAM MOCK)',
+        },
+        users: sandboxUsers,
+      }
+    }
+
+    try {
+      const [usersList, progressCounts, totalProgressDocs, totalCertificateDocs] = await Promise.all([
+        this.userModel
+          .find({ username: { $ne: 'recruiter-tech-lead' } })
+          .select('username role createdAt lastActiveAt')
+          .sort({ createdAt: 1 })
+          .lean(),
+        this.progressModel.aggregate([
+          { $group: { _id: '$username', count: { $sum: 1 } } },
+        ]),
+        this.progressModel.countDocuments(),
+        this.certificateModel.countDocuments(),
+      ])
+
+      const taskCountMap = new Map<string, number>(
+        progressCounts.map((item) => [String(item._id), Number(item.count)]),
+      )
+
+      const enrichedUsers = usersList.map((u) => ({
+        username: u.username,
+        role: u.role,
+        taskCount: taskCountMap.get(u.username) ?? 0,
+        createdAt: u.createdAt,
+        lastActiveAt: u.lastActiveAt,
+      }))
+
+      const activeUserSlots = enrichedUsers.filter((u) => u.role === UserRole.USER).length
+
+      return {
+        isSandbox: false,
+        finops: {
+          activeUserSlots,
+          maxUserSlots: 10,
+          totalUsers: enrichedUsers.length,
+          totalProgressDocs,
+          totalCertificateDocs,
+          clusterStatus: 'CONNECTED',
+        },
+        users: enrichedUsers,
+      }
+    } catch (error) {
+      this.logger.error(`Failed to compile Admin FinOps telemetry: ${(error as Error).message}`)
+      throw new InternalServerErrorException('Failed to aggregate cluster user telemetry')
+    }
+  }
+
+  /**
+   * Forcefully removes a target user and all associated progress and certificates in a transaction.
+   * Enforces strict safeguards against self-deletion and removing the last active ADMIN.
+   */
+  async deleteUserByAdmin(
+    operatorUsername: string,
+    targetUsername: string,
+  ): Promise<{ status: string; deletedUsername: string }> {
+    if (operatorUsername === targetUsername) {
+      throw new BadRequestException('Operation denied: Administrators cannot delete their own active account.')
+    }
+
+    if (targetUsername === 'recruiter-tech-lead') {
+      throw new BadRequestException('Operation denied: System sandbox profile cannot be removed.')
+    }
+
+    const targetUser = await this.userModel.findOne({ username: targetUsername }).lean()
+    if (!targetUser) {
+      throw new BadRequestException(`Target user '${targetUsername}' does not exist in active cluster nodes.`)
+    }
+
+    if (targetUser.role === UserRole.ADMIN) {
+      const activeAdminCount = await this.userModel.countDocuments({ role: UserRole.ADMIN })
+      if (activeAdminCount <= 1) {
+        throw new BadRequestException('SaaS Security Alert: Cannot delete the last remaining active system ADMINISTRATOR.')
+      }
+    }
+
+    const session = await this.connection.startSession()
+    session.startTransaction()
+
+    try {
+      await this.progressModel.deleteMany({ username: targetUsername }).session(session)
+      await this.certificateModel.deleteMany({ _id: new RegExp(`^${targetUsername}-`) }).session(session)
+      await this.userModel.deleteOne({ _id: targetUser._id }).session(session)
+
+      await session.commitTransaction()
+      this.logger.log(`Admin Cascade Delete: User "${targetUsername}" purged by "${operatorUsername}".`)
+
+      return {
+        status: 'DELETED',
+        deletedUsername: targetUsername,
+      }
+    } catch (error) {
+      await session.abortTransaction()
+      this.logger.error(`Admin Cascade Delete Crash for "${targetUsername}": ${(error as Error).message}`)
+      throw new InternalServerErrorException('Cascade user deletion transaction failed')
+    } finally {
+      session.endSession()
+    }
+  }
+
+  /**
+   * Manually triggers an out-of-schedule GitHub Actions parser workflow dispatch for a target user.
+   */
+  async triggerManualUserSync(
+    operatorUsername: string,
+    targetUsername: string,
+  ): Promise<{ status: string; username: string }> {
+    if (targetUsername === 'recruiter-tech-lead') {
+      throw new BadRequestException('Operation denied: Sandbox profile is isolated from live scraping pipelines.')
+    }
+
+    const targetUser = await this.userModel.findOne({ username: targetUsername }).lean()
+    if (!targetUser) {
+      throw new BadRequestException(`Target user '${targetUsername}' does not exist in active cluster nodes.`)
+    }
+
+    this.logger.log(`Admin Manual Sync: "${operatorUsername}" dispatched parser pipeline for "${targetUsername}".`)
+    this.triggerBackgroundParserSync(targetUsername)
+
+    return {
+      status: 'DISPATCHED',
+      username: targetUsername,
+    }
   }
 
   /**

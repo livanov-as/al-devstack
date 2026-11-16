@@ -28,6 +28,9 @@ export class User {
   })
   role!: UserRole;
 
+  @Prop({ type: Boolean, default: false })
+  strictLessonProgress!: boolean;
+
   // Automatically handled by mongoose timestamps configuration mapping
   createdAt!: Date;
   lastActiveAt!: Date;

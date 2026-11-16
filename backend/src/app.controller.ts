@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
+  Patch,
   Query,
   Headers,
   Body,
@@ -18,6 +20,7 @@ import {
   ApiResponse,
   ApiTags,
   ApiBearerAuth,
+  ApiCookieAuth,
 } from '@nestjs/swagger'
 import { InjectConnection } from '@nestjs/mongoose'
 import type { Connection } from 'mongoose' // Explicitly enforce type-only import to resolve ESM runtime crashes
@@ -122,6 +125,54 @@ export class AppController {
     const { data, cacheHit } = await this.appService.getGeoStats(username, role)
     res.setHeader('X-Cache', cacheHit ? 'HIT' : 'MISS')
     return res.status(HttpStatus.OK).json(data)
+  }
+
+  @Delete('progress/reset')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('al_session')
+  @ApiOperation({
+    summary: 'Reset user progress tasks globally or for a specific geographical region while preserving certificates',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Progress records cleared and isolated GIS cache invalidated',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden: Write operations are locked under DEMO mode parameters',
+  })
+  async resetProgress(
+    @Req() req: Request,
+    @Query('regionId') queryRegionId?: string,
+    @Body('regionId') bodyRegionId?: string,
+  ) {
+    const username = req.user!.username
+    const targetRegion = queryRegionId ?? bodyRegionId
+    return this.appService.resetUserProgress(username, targetRegion)
+  }
+
+  @Patch('progress/strict-mode')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('al_session')
+  @ApiOperation({
+    summary: 'Toggle strict lesson-based percentage calculation mode on the GIS map',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Strict lesson progress flag updated and isolated GIS cache invalidated',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden: Write operations are locked under DEMO mode parameters',
+  })
+  async updateStrictMode(
+    @Req() req: Request,
+    @Body('strictLessonProgress') strictLessonProgress: boolean,
+  ) {
+    const username = req.user!.username
+    return this.appService.updateStrictLessonProgress(username, strictLessonProgress)
   }
 
   @Post('progress/cache-flush')

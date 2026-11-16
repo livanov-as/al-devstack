@@ -2,6 +2,7 @@ import {
   Injectable,
   InternalServerErrorException,
   UnauthorizedException,
+  BadRequestException,
   Logger,
   OnModuleInit,
 } from '@nestjs/common'
@@ -14,7 +15,7 @@ import {
 import { Progress, ProgressDocument } from './schemas/progress.schema.js'
 import { GEO_MAPPING, GLOBAL_TRIGGER_SLUG } from '../config/constants.js'
 import { ProgressGateway } from './progress/progress.gateway.js'
-import { UserRole } from './schemas/user.schema.js'
+import { User, UserDocument, UserRole } from './schemas/user.schema.js'
 
 interface CachedTaskSnapshot {
   _id: string
@@ -37,6 +38,7 @@ let PERSISTENT_GEO_CACHE: any = {
   },
   globalFullStack: false,
   isSyncing: false,
+  strictLessonProgress: false,
 }
 
 let PERSISTENT_CERT_CACHE: any[] = [
@@ -120,6 +122,8 @@ export class AppService implements OnModuleInit {
     private certificateModel: Model<CertificateDocument>,
     @InjectModel(Progress.name)
     private progressModel: Model<ProgressDocument>,
+    @InjectModel(User.name)
+    private userModel: Model<UserDocument>,
     private readonly progressGateway: ProgressGateway,
   ) {}
 
@@ -275,12 +279,20 @@ export class AppService implements OnModuleInit {
     if (isActiveDemo) {
       if (this.geoStatsCache['livanov-as']) {
         return {
-          data: { ...this.geoStatsCache['livanov-as'], isSyncing: false },
+          data: {
+            ...this.geoStatsCache['livanov-as'],
+            isSyncing: false,
+            strictLessonProgress: false,
+          },
           cacheHit: true,
         }
       }
       return {
-        data: { ...PERSISTENT_GEO_CACHE, isSyncing: false },
+        data: {
+          ...PERSISTENT_GEO_CACHE,
+          isSyncing: false,
+          strictLessonProgress: false,
+        },
         cacheHit: false,
       }
     }
@@ -291,7 +303,12 @@ export class AppService implements OnModuleInit {
     }
 
     try {
-      const certsList = await this.certificateModel.find({ _id: new RegExp(`^${username}-`) }).lean()
+      const [certsList, userDoc] = await Promise.all([
+        this.certificateModel.find({ _id: new RegExp(`^${username}-`) }).lean(),
+        this.userModel.findOne({ username }).select('strictLessonProgress').lean(),
+      ])
+
+      const strictLessonProgress = Boolean(userDoc?.strictLessonProgress)
       const earnedCertSlugs = new Set(certsList.map((c) => c.slug))
       const hasGlobalFullStack = earnedCertSlugs.has(GLOBAL_TRIGGER_SLUG)
 
@@ -325,7 +342,7 @@ export class AppService implements OnModuleInit {
         const hasRegionCertificate = earnedCertSlugs.has(config.certSlug)
 
         let percentage = 0
-        if (hasRegionCertificate) {
+        if (hasRegionCertificate && !strictLessonProgress) {
           percentage = 100
         } else if (config.maxLessons > 0) {
           percentage = Math.min(
@@ -350,6 +367,7 @@ export class AppService implements OnModuleInit {
         regions: stats,
         globalFullStack: hasGlobalFullStack,
         isSyncing,
+        strictLessonProgress,
       }
 
       // Cache only synchronized datasets so initial empty states re-evaluate cleanly until scraper completes
@@ -363,7 +381,7 @@ export class AppService implements OnModuleInit {
       }
 
       this.logger.log(
-        `Successfully compiled GIS regional progress statistics facets for "${username}" (isSyncing: ${isSyncing}).`,
+        `Successfully compiled GIS regional progress statistics facets for "${username}" (isSyncing: ${isSyncing}, strict: ${strictLessonProgress}).`,
       )
       return { data: compiledPayload, cacheHit: false }
     } catch (error) {
@@ -375,9 +393,85 @@ export class AppService implements OnModuleInit {
           regions: {},
           globalFullStack: false,
           isSyncing: false,
+          strictLessonProgress: false,
         },
         cacheHit: false,
       }
+    }
+  }
+
+  /**
+   * Resets user progress records either globally or for a specific geographical curriculum sector.
+   * Preserves earned certificates intact and invalidates isolated user GIS cache.
+   */
+  async resetUserProgress(
+    username: string,
+    regionId?: string,
+  ): Promise<{ success: boolean; deletedCount: number; regionId: string }> {
+    const normalizedRegion = regionId && regionId.trim() !== '' ? regionId.trim() : 'all'
+    const filter: Record<string, any> = { username }
+
+    if (normalizedRegion !== 'all') {
+      const regionConfig = GEO_MAPPING[normalizedRegion]
+      if (!regionConfig) {
+        throw new BadRequestException(`Invalid geographical region identifier: "${normalizedRegion}"`)
+      }
+      filter.category = regionConfig.sectionSlug
+    }
+
+    try {
+      const deleteResult = await this.progressModel.deleteMany(filter)
+      delete this.geoStatsCache[username]
+
+      this.logger.log(
+        `Progress Reset: Cleared ${deleteResult.deletedCount} records for "${username}" (sector: ${normalizedRegion}).`,
+      )
+
+      return {
+        success: true,
+        deletedCount: deleteResult.deletedCount ?? 0,
+        regionId: normalizedRegion,
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to reset progress records for "${username}" (sector: ${normalizedRegion}): ${(error as Error).message}`,
+      )
+      throw new InternalServerErrorException('Progress reset transaction failed')
+    }
+  }
+
+  /**
+   * Toggles strict lesson-based percentage calculation mode on the GIS map for the user.
+   * Invalidates isolated user GIS cache so new percentage math applies immediately.
+   */
+  async updateStrictLessonProgress(
+    username: string,
+    strict: boolean,
+  ): Promise<{ success: boolean; strictLessonProgress: boolean }> {
+    const normalizedStrict = Boolean(strict)
+
+    try {
+      await this.userModel.findOneAndUpdate(
+        { username },
+        { $set: { strictLessonProgress: normalizedStrict } },
+        { new: true },
+      )
+
+      delete this.geoStatsCache[username]
+
+      this.logger.log(
+        `GIS Telemetry Mode: Updated strictLessonProgress=${normalizedStrict} for "${username}".`,
+      )
+
+      return {
+        success: true,
+        strictLessonProgress: normalizedStrict,
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to update strictLessonProgress flag for "${username}": ${(error as Error).message}`,
+      )
+      throw new InternalServerErrorException('Failed to update strict progress mode')
     }
   }
 
