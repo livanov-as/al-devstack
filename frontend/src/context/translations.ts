@@ -63,6 +63,42 @@ export interface TranslationKeys {
   syncingTitle: string
   syncingSubtitle: string
   syncingHint: string
+  syncingSandboxHint: string
+  resetBtnHeader: string
+  resetModalTitle: string
+  resetModalSubtitle: string
+  resetSectorLabel: string
+  resetSectorAll: string
+  resetStrictLabel: string
+  resetStrictHint: string
+  resetCertNotice: string
+  resetConfirmBtn: string
+  resetConfirmingBtn: string
+  resetSuccessMsg: string
+  resetSandboxBanner: string
+  sandboxLockedTooltip: string
+  adminBtnHeader: string
+  adminReadOnlyBadge: string
+  adminModalTitle: string
+  adminModalSubtitle: string
+  adminSandboxBanner: string
+  adminSlotsLabel: string
+  adminProgressDocsLabel: string
+  adminCertDocsLabel: string
+  adminClusterStatusLabel: string
+  adminFlushCacheBtn: string
+  adminFlushingCacheBtn: string
+  adminCacheFlushedMsg: string
+  adminUsersTableTitle: string
+  adminColUser: string
+  adminColRole: string
+  adminColTasks: string
+  adminColActions: string
+  adminSyncTooltip: string
+  adminRoleToggleTooltip: string
+  adminDeleteTooltip: string
+  adminDeleteConfirm: string
+  adminSyncDispatchedMsg: string
 }
 
 // Strictly typed translation registry matching supported language domains
@@ -156,6 +192,51 @@ export const translations: Record<string, TranslationKeys> = {
     syncingSubtitle:
       'Scraping curriculum telemetry & verified certificates in cloud queue',
     syncingHint: '// AUTO-REFRESH VIA WEBSOCKET UPLINK ENABLED',
+    syncingSandboxHint: '// SANDBOX SIMULATION: REPLAYING TELEMETRY UPLINK',
+
+    // Reset Progress Modal & Controls
+    resetBtnHeader: 'Reset Progress',
+    resetModalTitle: 'Reset Sector Telemetry',
+    resetModalSubtitle: 'Clear recorded lessons to replay curriculum progress',
+    resetSectorLabel: 'Target Geographical Sector',
+    resetSectorAll: 'All Sectors (Global Wipe)',
+    resetStrictLabel: 'Calculate map percentage strictly by lessons',
+    resetStrictHint:
+      'Prevents earned certificates from auto-locking continents at 100% after reset.',
+    resetCertNotice:
+      'Earned certificates and map trophies are permanently preserved.',
+    resetConfirmBtn: 'Execute Progress Reset',
+    resetConfirmingBtn: 'Purging Records...',
+    resetSuccessMsg: 'Telemetry records cleared. Map matrix updated.',
+    resetSandboxBanner: '// SANDBOX READ-ONLY MODE (MUTATIONS LOCKED)',
+    sandboxLockedTooltip: '// Disabled in Sandbox Mode (RBAC Protected)',
+
+    // Admin Control Panel Modal
+    adminBtnHeader: 'Admin Core',
+    adminReadOnlyBadge: 'READ-ONLY',
+    adminModalTitle: 'Cluster Admin & FinOps Core',
+    adminModalSubtitle:
+      'Multi-user capacity governance and scraper orchestration',
+    adminSandboxBanner:
+      '// SANDBOX READ-ONLY MODE (VIEWING SIMULATED FINOPS TELEMETRY)',
+    adminSlotsLabel: 'Active User Slots',
+    adminProgressDocsLabel: 'Progress Docs',
+    adminCertDocsLabel: 'Certificates',
+    adminClusterStatusLabel: 'Atlas Cluster',
+    adminFlushCacheBtn: 'Flush GIS Cache',
+    adminFlushingCacheBtn: 'Flushing...',
+    adminCacheFlushedMsg:
+      'In-memory GIS cache invalidated across all sessions.',
+    adminUsersTableTitle: 'Cluster Registry & FIFO Queue',
+    adminColUser: 'User',
+    adminColRole: 'Role',
+    adminColTasks: 'Tasks',
+    adminColActions: 'Actions',
+    adminSyncTooltip: 'Trigger out-of-schedule GitHub Actions sync',
+    adminRoleToggleTooltip: 'Toggle role (USER ↔ ADMIN)',
+    adminDeleteTooltip: 'Cascade delete user & all records',
+    adminDeleteConfirm: 'Confirm cascade deletion for',
+    adminSyncDispatchedMsg: 'GitHub Actions parser workflow dispatched for',
   },
   ru: {
     // Заголовки компонентов
@@ -246,5 +327,49 @@ export const translations: Record<string, TranslationKeys> = {
     syncingSubtitle:
       'Сбор телеметрии прогресса и сертификатов в облачной очереди',
     syncingHint: '// АВТООБНОВЛЕНИЕ ПО WEBSOCKET-КАНАЛУ АКТИВНО',
+    syncingSandboxHint: '// СИМУЛЯЦИЯ ПЕСОЧНИЦЫ: ВОСПРОИЗВЕДЕНИЕ ТЕЛЕМЕТРИИ',
+
+    // Модальное окно сброса прогресса
+    resetBtnHeader: 'Сброс прогресса',
+    resetModalTitle: 'Сброс телеметрии сектора',
+    resetModalSubtitle: 'Очистка пройденных уроков для повторного прохождения',
+    resetSectorLabel: 'Целевой географический сектор',
+    resetSectorAll: 'Все сектора (Полный сброс)',
+    resetStrictLabel: 'Считать прогресс карты строго по урокам',
+    resetStrictHint:
+      'Не дает полученным сертификатам автоматически удерживать 100% на карте после сброса.',
+    resetCertNotice:
+      'Полученные сертификаты и кубки на карте сохраняются навсегда.',
+    resetConfirmBtn: 'Выполнить сброс прогресса',
+    resetConfirmingBtn: 'Очистка записей...',
+    resetSuccessMsg: 'Записи прогресса очищены. Матрица карты обновлена.',
+    resetSandboxBanner:
+      '// РЕЖИМ ПЕСОЧНИЦЫ READ-ONLY (ИЗМЕНЕНИЯ ЗАБЛОКИРОВАНЫ)',
+    sandboxLockedTooltip: '// Отключено в демо-режиме (защита RBAC)',
+
+    // Модальное окно панели администратора
+    adminBtnHeader: 'Admin Core',
+    adminReadOnlyBadge: 'READ-ONLY',
+    adminModalTitle: 'Панель администратора и FinOps',
+    adminModalSubtitle: 'Управление слотами пользователей и запуск скрейпера',
+    adminSandboxBanner:
+      '// РЕЖИМ ПЕСОЧНИЦЫ READ-ONLY (СИМУЛЯЦИЯ ТЕЛЕМЕТРИИ FINOPS)',
+    adminSlotsLabel: 'Занято слотов',
+    adminProgressDocsLabel: 'Задач в БД',
+    adminCertDocsLabel: 'Сертификатов',
+    adminClusterStatusLabel: 'Кластер Atlas',
+    adminFlushCacheBtn: 'Сбросить кэш ГИС',
+    adminFlushingCacheBtn: 'Сброс кэша...',
+    adminCacheFlushedMsg: 'Кэш ГИС-карты в памяти сброшен для всех сессий.',
+    adminUsersTableTitle: 'Реестр кластера и очередь FIFO',
+    adminColUser: 'Пользователь',
+    adminColRole: 'Роль',
+    adminColTasks: 'Задачи',
+    adminColActions: 'Действия',
+    adminSyncTooltip: 'Запустить внеплановую синхронизацию в GitHub Actions',
+    adminRoleToggleTooltip: 'Переключить роль (USER ↔ ADMIN)',
+    adminDeleteTooltip: 'Каскадно удалить пользователя и все его данные',
+    adminDeleteConfirm: 'Подтвердить каскадное удаление для',
+    adminSyncDispatchedMsg: 'Воркфлоу парсера GitHub Actions запущен для',
   },
 }

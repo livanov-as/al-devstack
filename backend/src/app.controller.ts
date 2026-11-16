@@ -9,6 +9,7 @@ import {
   Body,
   Res,
   Req,
+  ForbiddenException, 
   HttpStatus,
   HttpCode,
   UseGuards,
@@ -22,6 +23,7 @@ import {
   ApiBearerAuth,
   ApiCookieAuth,
 } from '@nestjs/swagger'
+import { UserRole } from './schemas/user.schema.js'
 import { InjectConnection } from '@nestjs/mongoose'
 import type { Connection } from 'mongoose' // Explicitly enforce type-only import to resolve ESM runtime crashes
 import { AppService } from './app.service.js'
@@ -199,5 +201,34 @@ export class AppController {
         ? authHeader.split(' ')[1]
         : null
     return this.appService.flushCache(tokenFromHeader, tokenFromBody, targetUsername)
+  }
+
+  @Post('admin/cache-flush')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('al_session')
+  @ApiOperation({
+    summary: 'Invalidate in-memory regional GIS analytics stats cache via authenticated ADMIN session',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache successfully dropped from memory allocation layers',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden: Operations restricted strictly to ADMINISTRATOR profiles',
+  })
+  async flushCacheByAdmin(@Req() req: Request) {
+    const operatorUser = req.user
+    if (!operatorUser || operatorUser.role !== UserRole.ADMIN) {
+      this.logger.error(
+        `Security Alert: Non-admin user "${operatorUser?.username}" attempted admin cache flush.`,
+      )
+      throw new ForbiddenException(
+        'Access denied: Operations restricted strictly to ADMINISTRATOR profiles',
+      )
+    }
+
+    return this.appService.flushCacheByAdmin(operatorUser.username)
   }
 }

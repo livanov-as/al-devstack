@@ -508,4 +508,16 @@ export class AppService implements OnModuleInit {
 
     return { success: true, message: 'Cache invalidated successfully' }
   }
+
+  /**
+   * Invalidates in-memory regional GIS stats cache when triggered by an authenticated ADMIN session.
+   */
+  flushCacheByAdmin(adminUsername: string): { success: boolean; message: string } {
+    this.geoStatsCache = {}
+    this.logger.log(
+      `♻️ Admin Cache Flush: In-memory regional GIS stats cache cleared by "${adminUsername}".`,
+    )
+    this.progressGateway.notifyTelemetryUpdated()
+    return { success: true, message: 'Cache invalidated successfully by administrator' }
+  }
 }

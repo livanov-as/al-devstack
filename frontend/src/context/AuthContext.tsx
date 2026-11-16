@@ -41,6 +41,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = (sessionExpiredMessage?: string) => {
     setUser(null)
     localStorage.removeItem('al_user')
+    sessionStorage.removeItem('al_demo_replay')
     if (sessionExpiredMessage) {
       localStorage.setItem('al_session_err', sessionExpiredMessage)
     }
@@ -169,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       username: data.username,
       role: data.role,
     }
+    sessionStorage.setItem('al_demo_replay', '1')
     setUser(userData)
     localStorage.setItem('al_user', JSON.stringify(userData))
     localStorage.removeItem('al_session_err')
