@@ -74,11 +74,7 @@ export default function MapCanvas({
                 geo.properties.CONTINENT || geo.properties.name
               const regionId = topoJsonIdMap[continentName]
               const regionStats = regions[regionId]
-              const percentage = regionStats
-                ? regionStats.hasCertificate
-                  ? 100
-                  : regionStats.percentage
-                : 0
+              const percentage = regionStats ? regionStats.percentage : 0
               const geoColor = colorScale(percentage)
 
               return (

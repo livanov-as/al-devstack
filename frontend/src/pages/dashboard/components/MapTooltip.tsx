@@ -45,9 +45,9 @@ export default function MapTooltip({
         </strong>
         <div className="leading-relaxed text-slate-400">{tech}</div>
         <div className="mt-1.5 border-t border-slate-800/60 pt-1 text-[10px]">
-          {r.hasCertificate ? (
+          {r.percentage >= 100 ? (
             <span className="font-bold text-emerald-400">
-              {t.mapTooltipSynced}: 100%
+              {t.mapTooltipSynced}: {r.percentage}%
             </span>
           ) : (
             <span className="text-amber-400">

@@ -60,7 +60,7 @@ export class AuthController {
     res.cookie('al_session', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // Enforce secure HTTPS transit only in cloud cluster matrices
-      sameSite: 'lax', // Mitigation vector against Cross-Site Request Forgery (CSRF) vectors
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Required for cross-domain WebSocket handshake between Vercel and Railway
       maxAge: 1000 * 60 * 60 * 24, // Matches the manual JWT payload token 24h expiration limit
       path: '/', // Globally active across all telemetry routing interfaces
     })

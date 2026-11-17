@@ -113,6 +113,12 @@ export function useWorldMap() {
       e && e.type === 'focus' && (!e.pointerType || e.pointerType === '')
     const isDesktop = window.innerWidth >= 1280
     const isMouseEnter = e && e.type === 'mouseenter'
+
+    // Ignore hover events on narrow viewports so closing the modal doesn't immediately re-trigger it
+    if (isMouseEnter && !isDesktop) {
+      return
+    }
+
     const shouldUseMobileModal =
       e &&
       (e.pointerType === 'touch' ||

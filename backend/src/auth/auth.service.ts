@@ -114,7 +114,7 @@ export class AuthService implements OnModuleInit {
     })
 
     const options: https.RequestOptions = {
-      hostname: '://github.com',
+      hostname: 'api.github.com',
       path: `/repos/${githubRepo}/dispatches`,
       method: 'POST',
       headers: {

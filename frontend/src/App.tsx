@@ -18,7 +18,7 @@ import { LogOut, Radio, RotateCcw, Shield } from 'lucide-react'
 
 const WS_SERVER_URL = import.meta.env.DEV
   ? 'http://localhost:5000'
-  : 'https://railway.app'
+  : 'https://al-devstack-production.up.railway.app'
 
 interface ErrorBoundaryProps {
   children: ReactNode
