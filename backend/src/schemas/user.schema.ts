@@ -31,6 +31,9 @@ export class User {
   @Prop({ type: Boolean, default: false })
   strictLessonProgress!: boolean;
 
+  @Prop({ type: Boolean, default: false })
+  isInitialSyncCompleted!: boolean;
+
   // Automatically handled by mongoose timestamps configuration mapping
   createdAt!: Date;
   lastActiveAt!: Date;

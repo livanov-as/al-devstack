@@ -158,4 +158,31 @@ export class AuthController {
 
     return this.authService.triggerManualUserSync(operatorUser.username, targetUsername)
   }
+
+  @Post('auth/logout')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Clear active HttpOnly session cookie and terminate authentication state' })
+  @ApiResponse({ status: 200, description: 'Session cookie cleared successfully.' })
+  logout(@Res({ passthrough: true }) res: Response) {
+    res.clearCookie('al_session', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+    })
+    return { status: 'LOGGED_OUT' }
+  }
+
+  @Get('auth/ws-token')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('al_session')
+  @ApiOperation({ summary: 'Issue a short-lived signed WebSocket handshake token for cross-origin telemetry rooms' })
+  @ApiResponse({ status: 200, description: 'Signed WebSocket handshake token returned.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized: Valid session cookie required.' })
+  getWsToken(@Req() req: Request) {
+    const operatorUser = req.user!
+    const wsToken = this.authService.issueWsToken(operatorUser.username, operatorUser.role)
+    return { wsToken }
+  }
 }

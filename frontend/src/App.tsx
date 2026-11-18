@@ -238,30 +238,55 @@ function DashboardContent() {
     return () => window.clearInterval(timer)
   }, [isSyncing, isDemoReplayActive, user?.role])
 
-  // Subscribe to isolated user WebSocket room for real-time telemetry updates
+  // Subscribe to isolated user WebSocket room using a short-lived signed handshake ticket
   useEffect(() => {
     if (!user) return
 
-    const socket = io(WS_SERVER_URL, {
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-    })
+    let isDisposed = false
+    let socketInstance: ReturnType<typeof io> | null = null
 
-    socket.on('telemetry_updated', () => {
-      setSyncProgress(100)
-      setIsCompletingSync(true)
+    async function connectTelemetrySocket() {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/ws-token`, {
+          credentials: 'include',
+        })
+        if (!res.ok || isDisposed) return
 
-      window.setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['geo-stats'] })
-        queryClient.invalidateQueries({ queryKey: ['activity-calendar'] })
-        queryClient.invalidateQueries({ queryKey: ['progress-timeline'] })
-        queryClient.invalidateQueries({ queryKey: ['certificates-archive'] })
-        setIsCompletingSync(false)
-      }, 600)
-    })
+        const { wsToken } = await res.json()
+        if (!wsToken || isDisposed) return
+
+        socketInstance = io(WS_SERVER_URL, {
+          auth: { token: wsToken },
+          withCredentials: true,
+          transports: ['websocket', 'polling'],
+        })
+
+        socketInstance.on('telemetry_updated', () => {
+          setSyncProgress(100)
+          setIsCompletingSync(true)
+
+          window.setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ['geo-stats'] })
+            queryClient.invalidateQueries({ queryKey: ['activity-calendar'] })
+            queryClient.invalidateQueries({ queryKey: ['progress-timeline'] })
+            queryClient.invalidateQueries({
+              queryKey: ['certificates-archive'],
+            })
+            setIsCompletingSync(false)
+          }, 600)
+        })
+      } catch (err) {
+        console.warn('WebSocket handshake ticket initialization skipped:', err)
+      }
+    }
+
+    connectTelemetrySocket()
 
     return () => {
-      socket.disconnect()
+      isDisposed = true
+      if (socketInstance) {
+        socketInstance.disconnect()
+      }
     }
   }, [user, queryClient])
 

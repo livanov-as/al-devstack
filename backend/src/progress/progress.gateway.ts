@@ -30,11 +30,15 @@ export class ProgressGateway implements OnGatewayConnection, OnGatewayDisconnect
    * and isolates the socket into a dedicated user-scoped room.
    */
   handleConnection(client: Socket) {
+    const authToken =
+      typeof client.handshake.auth?.token === 'string'
+        ? client.handshake.auth.token
+        : null
     const rawCookies = client.handshake.headers.cookie
-    const token = this.extractSessionToken(rawCookies)
+    const token = authToken || this.extractSessionToken(rawCookies)
 
     if (!token) {
-      this.logger.warn(`WS Access Denied: Missing session cookie on client ${client.id}.`)
+      this.logger.warn(`WS Access Denied: Missing handshake token or session cookie on client ${client.id}.`)
       client.disconnect(true)
       return
     }

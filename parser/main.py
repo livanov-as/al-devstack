@@ -131,7 +131,7 @@ async def parse_timeline_page(page, username: str) -> list:
     return tasks
 
 
-async def flush_backend_cache():
+async def flush_backend_cache(target_username: str = None):
     """Asynchronously triggers the backend cache flush webhook using the protected secret token."""
     if not CACHE_SECRET_TOKEN:
         print(" ⚠️ Cache token missing in environment. Webhook dispatch aborted.")
@@ -139,6 +139,9 @@ async def flush_backend_cache():
 
     backend_url = os.getenv("BACKEND_INTERNAL_URL", "http://localhost:5000")
     flush_endpoint = f"{backend_url}/api/progress/cache-flush"
+    payload = {"token": CACHE_SECRET_TOKEN}
+    if target_username:
+        payload["username"] = target_username
     
     print(f" 📡 Triggering orbital cache flush webhook endpoint: {flush_endpoint}")
     try:
@@ -146,7 +149,7 @@ async def flush_backend_cache():
             response = await client.post(
                 flush_endpoint,
                 headers={"Authorization": f"Bearer {CACHE_SECRET_TOKEN}"},
-                json={"token": CACHE_SECRET_TOKEN},
+                json=payload,
                 timeout=10.0
             )
             if response.status_code == 200:
@@ -352,8 +355,8 @@ async def main(target_username: str = None):
 
             await browser.close()
             
-            # Global Cache Invalidation Step following successful iterations
-            await flush_backend_cache()
+            # Targeted or Global Cache Invalidation Step following successful iterations
+            await flush_backend_cache(target_username)
             print("\n 🎉 Dynamic multi-user scraping lifecycle successfully completed.")
 
     except Exception as e:

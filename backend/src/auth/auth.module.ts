@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { Module, forwardRef } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { AuthService } from './auth.service.js'
 import { AuthController } from './auth.controller.js'
@@ -6,9 +6,11 @@ import { CryptoService } from './crypto.service.js'
 import { User, UserSchema } from '../schemas/user.schema.js'
 import { Progress, ProgressSchema } from '../schemas/progress.schema.js'
 import { Certificate, CertificateSchema } from '../schemas/certificate.schema.js'
+import { AppModule } from '../app.module.js'
 
 @Module({
   imports: [
+    forwardRef(() => AppModule),
     // Bind all necessary data model models required for multi-user telemetry and FIFO purging pipelines
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },

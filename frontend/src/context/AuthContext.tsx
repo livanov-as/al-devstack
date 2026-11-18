@@ -38,7 +38,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserContextData | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
 
-  const logout = (sessionExpiredMessage?: string) => {
+  const logout = async (sessionExpiredMessage?: string) => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+    } catch {
+      // Ignore network errors during session cleanup
+    }
     setUser(null)
     localStorage.removeItem('al_user')
     sessionStorage.removeItem('al_demo_replay')

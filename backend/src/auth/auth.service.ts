@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Inject,
+  forwardRef,
   ConflictException,
   InternalServerErrorException,
   UnauthorizedException,
@@ -17,6 +19,7 @@ import { Progress, ProgressDocument } from '../schemas/progress.schema.js'
 import { Certificate, CertificateDocument } from '../schemas/certificate.schema.js'
 import { AuthCredentialsDto } from './dto/auth-credentials.dto.js'
 import { CryptoService } from './crypto.service.js'
+import { AppService } from '../app.service.js'
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -28,6 +31,8 @@ export class AuthService implements OnModuleInit {
     @InjectModel(Certificate.name) private certificateModel: Model<CertificateDocument>,
     @InjectConnection() private readonly connection: Connection,
     private readonly cryptoService: CryptoService,
+    @Inject(forwardRef(() => AppService))
+    private readonly appService: AppService,
   ) {}
 
   /**
@@ -250,6 +255,13 @@ export class AuthService implements OnModuleInit {
   }
 
   /**
+   * Generates a signed WebSocket handshake token scoped to the authenticated user.
+   */
+  issueWsToken(username: string, role: UserRole): string {
+    return this.cryptoService.generateJwt({ username, role, scope: 'ws' })
+  }
+
+  /**
    * Retrieves cluster-wide user telemetry and FinOps capacity metrics for the Admin Panel.
    * Returns an isolated in-memory snapshot for DEMO_USER to eliminate Atlas reads and protect real accounts.
    */
@@ -414,6 +426,7 @@ export class AuthService implements OnModuleInit {
       await this.userModel.deleteOne({ _id: targetUser._id }).session(session)
 
       await session.commitTransaction()
+      this.appService.evictUserGeoCache(targetUsername)
       this.logger.log(`Admin Cascade Delete: User "${targetUsername}" purged by "${operatorUsername}".`)
 
       return {

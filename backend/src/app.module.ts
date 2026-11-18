@@ -1,4 +1,4 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Certificate, CertificateSchema } from './schemas/certificate.schema.js';
 import { Progress, ProgressSchema } from './schemas/progress.schema.js';
@@ -28,11 +28,13 @@ if (!process.env.MONGO_URI) {
     ]),
 
     // Integrate the dedicated identity authentication sub-system module
-    AuthModule,
+    forwardRef(() => AuthModule),
   ],
   controllers: [AppController],
   providers: [AppService, ProgressGateway],
+  exports: [AppService],
 })
+
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     // We will inject tracking middleware or connection guards here on the next steps

@@ -74,9 +74,40 @@ export default function ResetProgressModal({
   if (!isOpen) return null
 
   const handleToggleStrictMode = async () => {
-    if (isDemo || isTogglingStrict) return
+    if (isTogglingStrict) return
 
     const nextValue = !strictMode
+
+    // Sandbox FinOps Mode: recalculate map percentages locally in RAM without Atlas mutations
+    if (isDemo) {
+      setStrictMode(nextValue)
+      queryClient.setQueryData<any>(['geo-stats'], (prev: any) => {
+        if (!prev || !prev.regions) return prev
+        const updatedRegions: Record<string, any> = {}
+        for (const [key, region] of Object.entries(prev.regions) as [
+          string,
+          any,
+        ][]) {
+          let percentage = 0
+          if (region.hasCertificate && !nextValue) {
+            percentage = 100
+          } else if (region.total > 0) {
+            percentage = Math.min(
+              100,
+              Math.round((region.completed / region.total) * 100),
+            )
+          }
+          updatedRegions[key] = { ...region, percentage }
+        }
+        return {
+          ...prev,
+          regions: updatedRegions,
+          strictLessonProgress: nextValue,
+        }
+      })
+      return
+    }
+
     setIsTogglingStrict(true)
     setErrorMsg(null)
     setFeedbackMsg(null)
@@ -221,15 +252,9 @@ export default function ResetProgressModal({
           </div>
 
           {/* Strict Lesson Mode Toggle */}
-          <div
-            title={isDemo ? t.sandboxLockedTooltip : undefined}
-            className={`flex items-start justify-between gap-3 rounded-lg border border-slate-800/80 bg-slate-950/40 p-3.5 ${
-              isDemo ? 'opacity-65' : ''
-            }`}
-          >
+          <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-800/80 bg-slate-950/40 p-3.5">
             <div className="flex flex-col gap-1">
               <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-200">
-                {isDemo && <Lock className="h-3 w-3 text-amber-400" />}
                 {t.resetStrictLabel}
               </span>
               <span className="text-[11px] leading-relaxed text-slate-400">
@@ -240,14 +265,12 @@ export default function ResetProgressModal({
               type="button"
               role="switch"
               aria-checked={strictMode}
-              disabled={isDemo || isTogglingStrict}
+              disabled={isTogglingStrict}
               onClick={handleToggleStrictMode}
-              className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition-colors ${
-                isDemo
-                  ? 'cursor-not-allowed border-slate-700 bg-slate-800'
-                  : strictMode
-                    ? 'cursor-pointer border-emerald-400 bg-emerald-500'
-                    : 'cursor-pointer border-slate-700 bg-slate-800'
+              className={`relative mt-0.5 inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border transition-colors ${
+                strictMode
+                  ? 'border-emerald-400 bg-emerald-500'
+                  : 'border-slate-700 bg-slate-800'
               }`}
             >
               <span

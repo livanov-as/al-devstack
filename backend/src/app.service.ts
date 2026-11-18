@@ -305,10 +305,14 @@ export class AppService implements OnModuleInit {
     try {
       const [certsList, userDoc] = await Promise.all([
         this.certificateModel.find({ _id: new RegExp(`^${username}-`) }).lean(),
-        this.userModel.findOne({ username }).select('strictLessonProgress').lean(),
+        this.userModel
+          .findOne({ username })
+          .select('strictLessonProgress isInitialSyncCompleted')
+          .lean(),
       ])
 
       const strictLessonProgress = Boolean(userDoc?.strictLessonProgress)
+      const isInitialSyncCompleted = Boolean(userDoc?.isInitialSyncCompleted)
       const earnedCertSlugs = new Set(certsList.map((c) => c.slug))
       const hasGlobalFullStack = earnedCertSlugs.has(GLOBAL_TRIGGER_SLUG)
 
@@ -361,7 +365,16 @@ export class AppService implements OnModuleInit {
         }
       }
 
-      const isSyncing = totalCompletedAcrossRegions === 0 && certsList.length === 0
+      const hasTelemetryRecords =
+        totalCompletedAcrossRegions > 0 || certsList.length > 0
+      const isSyncing = !isInitialSyncCompleted && !hasTelemetryRecords
+
+      if (!isInitialSyncCompleted && hasTelemetryRecords) {
+        await this.userModel.updateOne(
+          { username },
+          { $set: { isInitialSyncCompleted: true } },
+        )
+      }
 
       const compiledPayload = {
         regions: stats,
@@ -420,7 +433,13 @@ export class AppService implements OnModuleInit {
     }
 
     try {
-      const deleteResult = await this.progressModel.deleteMany(filter)
+      const [deleteResult] = await Promise.all([
+        this.progressModel.deleteMany(filter),
+        this.userModel.updateOne(
+          { username },
+          { $set: { isInitialSyncCompleted: true } },
+        ),
+      ])
       delete this.geoStatsCache[username]
 
       this.logger.log(
@@ -476,13 +495,23 @@ export class AppService implements OnModuleInit {
   }
 
   /**
+   * Evicts a single user's cached GIS telemetry entry from RAM (used on admin cascade deletion).
+   */
+  evictUserGeoCache(username: string): void {
+    if (this.geoStatsCache[username]) {
+      delete this.geoStatsCache[username]
+      this.logger.log(`♻️ Evicted isolated GIS cache entry for "${username}".`)
+    }
+  }
+
+  /**
    * Secure endpoint utilized by the parser execution lifecycle to invalidate local memory caches.
    */
-  flushCache(
+  async flushCache(
     tokenFromHeader: string | null,
     tokenFromBody: string | null,
     targetUsername?: string,
-  ): { success: boolean; message: string } {
+  ): Promise<{ success: boolean; message: string }> {
     const secretToken = process.env.CACHE_SECRET_TOKEN
 
     if (!secretToken) {
@@ -499,12 +528,24 @@ export class AppService implements OnModuleInit {
       )
     }
 
-    // Flush distributed runtime query caches cleanly
-    this.geoStatsCache = {}
-    this.logger.log('♻️ In-Memory regional GIS stats cache successfully cleared across all multi-user domains.')
-
-    // Notify connected WebSocket rooms to invalidate client telemetry caches
-    this.progressGateway.notifyTelemetryUpdated(targetUsername)
+    if (targetUsername && targetUsername.trim() !== '') {
+      const normalizedTarget = targetUsername.trim()
+      delete this.geoStatsCache[normalizedTarget]
+      await this.userModel.updateOne(
+        { username: normalizedTarget },
+        { $set: { isInitialSyncCompleted: true } },
+      )
+      this.logger.log(
+        `♻️ In-Memory regional GIS stats cache cleared specifically for "${normalizedTarget}".`,
+      )
+      this.progressGateway.notifyTelemetryUpdated(normalizedTarget)
+    } else {
+      this.geoStatsCache = {}
+      this.logger.log(
+        '♻️ In-Memory regional GIS stats cache successfully cleared across all multi-user domains.',
+      )
+      this.progressGateway.notifyTelemetryUpdated()
+    }
 
     return { success: true, message: 'Cache invalidated successfully' }
   }
