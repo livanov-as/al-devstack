@@ -20,6 +20,7 @@ import { Certificate, CertificateDocument } from '../schemas/certificate.schema.
 import { AuthCredentialsDto } from './dto/auth-credentials.dto.js'
 import { CryptoService } from './crypto.service.js'
 import { AppService } from '../app.service.js'
+import { DemoTelemetryService } from '../demo/demo-telemetry.service.js'
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -33,6 +34,8 @@ export class AuthService implements OnModuleInit {
     private readonly cryptoService: CryptoService,
     @Inject(forwardRef(() => AppService))
     private readonly appService: AppService,
+    @Inject(forwardRef(() => DemoTelemetryService))
+    private readonly demoTelemetryService: DemoTelemetryService,
   ) {}
 
   /**
@@ -267,82 +270,9 @@ export class AuthService implements OnModuleInit {
    */
   async getAdminUsersTelemetry(operatorRole: UserRole) {
     if (operatorRole === UserRole.DEMO_USER) {
-      const now = Date.now()
-      const dayMs = 24 * 60 * 60 * 1000
-
-      const sandboxUsers = [
-        {
-          username: 'core-architect',
-          role: UserRole.ADMIN,
-          taskCount: 754,
-          createdAt: new Date(now - 45 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          username: 'alex-frontend',
-          role: UserRole.USER,
-          taskCount: 412,
-          createdAt: new Date(now - 28 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          username: 'maria-fullstack',
-          role: UserRole.USER,
-          taskCount: 618,
-          createdAt: new Date(now - 21 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 1 * dayMs).toISOString(),
-        },
-        {
-          username: 'dev-navigator',
-          role: UserRole.USER,
-          taskCount: 195,
-          createdAt: new Date(now - 16 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 2 * dayMs).toISOString(),
-        },
-        {
-          username: 'elena-ts-coder',
-          role: UserRole.USER,
-          taskCount: 340,
-          createdAt: new Date(now - 11 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 3 * dayMs).toISOString(),
-        },
-        {
-          username: 'max-backend-pro',
-          role: UserRole.USER,
-          taskCount: 529,
-          createdAt: new Date(now - 7 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 4 * dayMs).toISOString(),
-        },
-        {
-          username: 'kate-ui-craft',
-          role: UserRole.USER,
-          taskCount: 88,
-          createdAt: new Date(now - 3 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 12 * 60 * 60 * 1000).toISOString(),
-        },
-        {
-          username: 'ivan-cloud-ops',
-          role: UserRole.USER,
-          taskCount: 147,
-          createdAt: new Date(now - 1 * dayMs).toISOString(),
-          lastActiveAt: new Date(now - 30 * 60 * 1000).toISOString(),
-        },
-      ]
-
-      return {
-        isSandbox: true,
-        finops: {
-          activeUserSlots: 7,
-          maxUserSlots: 10,
-          totalUsers: sandboxUsers.length,
-          totalProgressDocs: 3083,
-          totalCertificateDocs: 14,
-          clusterStatus: 'HEALTHY (RAM MOCK)',
-        },
-        users: sandboxUsers,
-      }
+      return this.demoTelemetryService.getAdminUsersTelemetry()
     }
-
+    
     try {
       const [usersList, progressCounts, totalProgressDocs, totalCertificateDocs] = await Promise.all([
         this.userModel

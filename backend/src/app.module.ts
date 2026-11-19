@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { ProgressGateway } from './progress/progress.gateway.js';
+import { DemoTelemetryService } from './demo/demo-telemetry.service.js';
 import path from 'path';
 import dotenv from 'dotenv';
 
@@ -31,8 +32,8 @@ if (!process.env.MONGO_URI) {
     forwardRef(() => AuthModule),
   ],
   controllers: [AppController],
-  providers: [AppService, ProgressGateway],
-  exports: [AppService],
+  providers: [AppService, ProgressGateway, DemoTelemetryService],
+  exports: [AppService, DemoTelemetryService],
 })
 
 export class AppModule implements NestModule {
