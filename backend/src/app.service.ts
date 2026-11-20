@@ -1,5 +1,7 @@
 import {
   Injectable,
+  Inject,
+  forwardRef,
   InternalServerErrorException,
   UnauthorizedException,
   BadRequestException,
@@ -17,6 +19,7 @@ import { GEO_MAPPING, GLOBAL_TRIGGER_SLUG } from '../config/constants.js'
 import { ProgressGateway } from './progress/progress.gateway.js'
 import { User, UserDocument, UserRole } from './schemas/user.schema.js'
 import { DemoTelemetryService } from './demo/demo-telemetry.service.js'
+import { AiService } from './ai/ai.service.js'
 
 @Injectable()
 export class AppService implements OnModuleInit {
@@ -32,6 +35,8 @@ export class AppService implements OnModuleInit {
     private userModel: Model<UserDocument>,
     private readonly progressGateway: ProgressGateway,
     private readonly demoTelemetryService: DemoTelemetryService,
+    @Inject(forwardRef(() => AiService))
+    private readonly aiService: AiService,
   ) {}
 
   private isDemoProfile(username: string, role?: UserRole): boolean {
@@ -103,6 +108,36 @@ export class AppService implements OnModuleInit {
   }
 
   /**
+   * Lazily enriches up to 3 un-tagged progress documents in the background via the concurrency:1 AI queue.
+   */
+  private enrichUnprocessedTasksInBackground(tasks: any[]): void {
+    const unenriched = tasks
+      .filter((t) => t && t._id && (!Array.isArray(t.tags) || t.tags.length === 0))
+      .slice(0, 3)
+
+    if (unenriched.length === 0) return
+
+    void Promise.allSettled(
+      unenriched.map(async (task) => {
+        try {
+          const enriched = await this.aiService.enrichTaskMetadata(
+            task.task_name,
+            task.category,
+          )
+          await this.progressModel.updateOne(
+            { _id: task._id },
+            { $set: { tags: enriched.tags, difficulty: enriched.difficulty } },
+          )
+        } catch (err) {
+          this.logger.warn(
+            `Background AI task enrichment skipped for "${task.task_name}": ${(err as Error).message}`,
+          )
+        }
+      }),
+    )
+  }
+
+  /**
    * Retrieves exactly the 10 most recent tasks for the streaming feed.
    * Isolates demo profiles to RAM and returns authentic empty arrays for syncing real users.
    */
@@ -116,8 +151,12 @@ export class AppService implements OnModuleInit {
         .find({ username: username })
         .sort({ date: -1 })
         .limit(10)
-        .select('task_name category date url')
+        .select('task_name category date url tags difficulty')
         .lean()
+
+      if (tasksList && tasksList.length > 0) {
+        this.enrichUnprocessedTasksInBackground(tasksList)
+      }
 
       // Learning Layer: Update adaptive memory storage based on live admin progress trace loops
       if (username === 'livanov-as' && tasksList && tasksList.length > 0) {
@@ -128,6 +167,8 @@ export class AppService implements OnModuleInit {
             category: task.category,
             date: new Date(task.date),
             url: task.url,
+            tags: task.tags,
+            difficulty: task.difficulty,
           })),
         )
       }

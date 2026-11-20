@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import json
 import random
 import asyncio
 import traceback
@@ -22,6 +23,41 @@ V9_LAUNCH_DATE = datetime(2024, 12, 24, 0, 0, tzinfo=timezone.utc)
 
 # Infrastructure Context Flags
 IS_DOCKER = os.getenv("IS_DOCKER_ENV", "false").lower() == "true"
+
+SELECTORS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "selectors.json")
+
+DEFAULT_SELECTORS = {
+    "certifications": {
+        "link": "a[href*='/certification/']"
+    },
+    "timeline": {
+        "row": "tr.timeline-row",
+        "task_link": "td a[href^='/learn/']",
+        "time": "time",
+        "next_button_item": "li.timeline-pagination_list_item:has(button[aria-label='Go to next page'])",
+        "next_button": "button",
+        "first_row_link": "tr.timeline-row a"
+    }
+}
+
+
+def load_selectors() -> dict:
+    """Loads CSS selectors from selectors.json with safe fallback to defaults."""
+    try:
+        if os.path.exists(SELECTORS_PATH):
+            with open(SELECTORS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict) and "certifications" in data and "timeline" in data:
+                    return data
+    except Exception as e:
+        print(f" ⚠️ Failed to read selectors.json ({str(e)}). Using default selectors.")
+    return json.loads(json.dumps(DEFAULT_SELECTORS))
+
+
+def save_selectors(selectors: dict) -> None:
+    """Persists healed CSS selectors back to selectors.json."""
+    with open(SELECTORS_PATH, "w", encoding="utf-8") as f:
+        json.dump(selectors, f, indent=2)
 
 
 def get_mongo_db():
@@ -74,10 +110,11 @@ def resolve_user_runtime_limits(user_doc) -> int:
     return 0 # Absolute unmetered tracking infrastructure access for ADMIN profiles
 
 
-async def parse_certifications(page, username: str) -> list:
+async def parse_certifications(page, username: str, selectors: dict = None) -> list:
     """Scrapes certified curricula slugs from the user profile view layers asynchronously."""
+    active_selectors = selectors or DEFAULT_SELECTORS
     certs = []
-    cert_elements = await page.query_selector_all("a[href*='/certification/']")
+    cert_elements = await page.query_selector_all(active_selectors["certifications"]["link"])
     for elem in cert_elements:
         href = await elem.get_attribute("href") or ""
         title = (await elem.inner_text()).strip()
@@ -93,25 +130,27 @@ async def parse_certifications(page, username: str) -> list:
     return certs
 
 
-async def parse_timeline_page(page, username: str) -> list:
+async def parse_timeline_page(page, username: str, selectors: dict = None) -> list:
     """Parses a single pagination page of the freeCodeCamp v9 timeline asynchronously."""
+    active_selectors = selectors or DEFAULT_SELECTORS
+    tl_sel = active_selectors["timeline"]
     tasks = []
-    rows = await page.query_selector_all("tr.timeline-row")
+    rows = await page.query_selector_all(tl_sel["row"])
     for row in rows:
-        link_elem = await row.query_selector("td a[href^='/learn/']")
+        link_elem = await row.query_selector(tl_sel["task_link"])
         if not link_elem:
             continue
-            
+
         task_name = (await link_elem.inner_text()).strip()
         url = await link_elem.get_attribute("href") or ""
-        
+
         category = "unknown-task"
         if url:
             url_parts = [p for p in url.split("/") if p]
             if len(url_parts) >= 2 and url_parts[0] == "learn":
                 category = url_parts[1]
-        
-        time_elem = await row.query_selector("time")
+
+        time_elem = await row.query_selector(tl_sel["time"])
         if time_elem:
             date_iso = await time_elem.get_attribute("datetime") or ""
             try:
@@ -120,7 +159,7 @@ async def parse_timeline_page(page, username: str) -> list:
                 task_date = datetime.now(timezone.utc)
         else:
             task_date = datetime.now(timezone.utc)
-            
+
         tasks.append({
             "username": username,
             "task_name": task_name,
@@ -162,7 +201,79 @@ async def flush_backend_cache(target_username: str = None):
         print(f" ⚠️ Webhook Exception: Failed to dispatch cache-flush trigger payload ({str(e)}). Pipeline preserved.")
 
 
+async def heal_selectors_with_ai(html_snippet: str, current_selectors: dict) -> dict | None:
+    """Uses LLM (local Ollama or cloud OpenRouter) to repair broken CSS selectors from DOM snapshot."""
+    provider = os.getenv("AI_PROVIDER", "ollama").lower()
+    base_url = os.getenv("AI_BASE_URL", "http://localhost:11434/v1").rstrip("/")
+    api_key = os.getenv("AI_API_KEY", "ollama")
+    primary_model = os.getenv("AI_MODEL", "qwen2.5-coder:1.5b")
+    fallback_model = os.getenv("AI_FALLBACK_MODEL", primary_model)
+
+    if provider == "cloud" and (not api_key or api_key == "ollama"):
+        print(" ⚠️ Self-Healing AI skipped: AI_API_KEY is missing for cloud provider.")
+        return None
+
+    system_prompt = (
+        "You are a Playwright CSS selector repair engine. "
+        "Analyze the HTML snippet of a freeCodeCamp user profile page and update broken CSS selectors. "
+        "Return ONLY valid JSON matching the exact schema of current_selectors without markdown fences or explanations."
+    )
+    user_prompt = json.dumps({
+        "current_selectors": current_selectors,
+        "html_snippet": html_snippet[:12000]
+    })
+
+    models_to_try = [primary_model]
+    if fallback_model and fallback_model != primary_model:
+        models_to_try.append(fallback_model)
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=45.0) as client:
+        for model_name in models_to_try:
+            payload = {
+                "model": model_name,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.1,
+            }
+            if provider == "ollama":
+                payload["keep_alive"] = 0
+                payload["options"] = {"num_ctx": 2048}
+
+            try:
+                print(f" 🤖 Self-Healing AI: Requesting selector repair via '{model_name}' ({provider})...")
+                res = await client.post(f"{base_url}/chat/completions", headers=headers, json=payload)
+                if res.status_code != 200:
+                    print(f" ⚠️ AI gateway returned HTTP {res.status_code}: {res.text[:200]}")
+                    continue
+
+                raw_content = res.json()["choices"][0]["message"]["content"].strip()
+                cleaned_json = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw_content, flags=re.MULTILINE).strip()
+                parsed = json.loads(cleaned_json)
+
+                if (
+                    isinstance(parsed, dict)
+                    and isinstance(parsed.get("certifications"), dict)
+                    and isinstance(parsed.get("timeline"), dict)
+                    and all(k in parsed["timeline"] for k in DEFAULT_SELECTORS["timeline"])
+                ):
+                    return parsed
+            except Exception as e:
+                print(f" ⚠️ Self-Healing AI attempt failed on '{model_name}': {str(e)}")
+
+    return None
+
+
 async def main(target_username: str = None):
+    selectors = load_selectors()
+    ai_healing_attempted = False
+
     print(" 🚀 Starting global asynchronous multi-user HTML scraper matrix...")
     
     try:
@@ -233,18 +344,43 @@ async def main(target_username: str = None):
                     await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
                     await page.wait_for_timeout(3000)
                     
-                    # Privacy and Visibility Gatekeeper Check
+                    # Privacy and Visibility Gatekeeper Check + Self-Healing Trigger
                     try:
-                        await page.wait_for_selector("tr.timeline-row", timeout=12000)
+                        await page.wait_for_selector(selectors["timeline"]["row"], timeout=12000)
                     except Exception:
-                        print(f" 🛑 Profile timeline missing or private for '{username}'. Skipping node.")
-                        continue
+                        has_table_structure = await page.evaluate(
+                            "() => Boolean(document.querySelector('table, main a[href*=\"/learn/\"]'))"
+                        )
+                        if has_table_structure and not ai_healing_attempted:
+                            ai_healing_attempted = True
+                            print(f" 🛠️ Timeline selector '{selectors['timeline']['row']}' failed on visible DOM. Engaging AI Self-Healing...")
+                            cleaned_html = await page.evaluate("""() => {
+                                const clone = document.body.cloneNode(true);
+                                clone.querySelectorAll('script, style, svg, noscript').forEach(el => el.remove());
+                                return clone.innerHTML;
+                            }""")
+                            repaired = await heal_selectors_with_ai(cleaned_html, selectors)
+                            if repaired:
+                                selectors = repaired
+                                save_selectors(selectors)
+                                print(" ✅ selectors.json healed and persisted. Retrying DOM selector check...")
+                                try:
+                                    await page.wait_for_selector(selectors["timeline"]["row"], timeout=8000)
+                                except Exception:
+                                    print(f" 🛑 Repaired selector still missed timeline for '{username}'. Skipping node.")
+                                    continue
+                            else:
+                                print(f" 🛑 AI Self-Healing could not resolve new selectors for '{username}'. Skipping node.")
+                                continue
+                        else:
+                            print(f" 🛑 Profile timeline missing or private for '{username}'. Skipping node.")
+                            continue
 
                     # Early Exit: Validate idle state immediately for active users
                     if parser_mode == "INCREMENTAL":
-                        first_row = await page.query_selector("tr.timeline-row")
+                        first_row = await page.query_selector(selectors["timeline"]["row"])
                         if first_row:
-                            time_elem = await first_row.query_selector("time")
+                            time_elem = await first_row.query_selector(selectors["timeline"]["time"])
                             if time_elem:
                                 first_date_iso = await time_elem.get_attribute("datetime") or ""
                                 try:
@@ -265,7 +401,7 @@ async def main(target_username: str = None):
 
                     # --- Synchronize Certifications ---
                     print(" 🎖️ Extraction mapping initialized for verified certificates...")
-                    active_certs = await parse_certifications(page, username)
+                    active_certs = await parse_certifications(page, username, selectors)
                     if active_certs:
                         for cert in active_certs:
                             db["certificates"].update_one({"_id": cert["_id"]}, {"$set": cert}, upsert=True)
@@ -278,7 +414,7 @@ async def main(target_username: str = None):
                     should_continue = True
                     
                     while should_continue:
-                        page_tasks = await parse_timeline_page(page, username)
+                        page_tasks = await parse_timeline_page(page, username, selectors)
                         if not page_tasks:
                             print(f" 🛑 Page {page_number} buffer blank. Halting pagination loop.")
                             break
@@ -305,24 +441,26 @@ async def main(target_username: str = None):
                         if parser_mode == "INCREMENTAL" and page_filtered_count == 0 and page_number > 15:
                             break
 
-                        next_button_item = await page.query_selector("li.timeline-pagination_list_item:has(button[aria-label='Go to next page'])")
+                        next_button_item = await page.query_selector(selectors["timeline"]["next_button_item"])
                         if next_button_item and should_continue:
                             await next_button_item.scroll_into_view_if_needed()
                             await asyncio.sleep(random.uniform(1.5, 3.5))  # Anti-bot pagination jitter
                             
-                            next_button = await next_button_item.query_selector("button")
+                            next_button = await next_button_item.query_selector(selectors["timeline"]["next_button"])
                             is_disabled = await next_button.get_attribute("disabled") if next_button else "true"
                             
                             if next_button and is_disabled is None:
-                                first_row = await page.query_selector("tr.timeline-row a")
+                                first_row = await page.query_selector(selectors["timeline"]["first_row_link"])
                                 current_signature = (await first_row.inner_text()).strip() if first_row else ""
                                 
                                 page_number += 1
                                 await next_button.click()
                                 
+                                first_row_sel = json.dumps(selectors["timeline"]["first_row_link"])
+                                sig_json = json.dumps(current_signature)
                                 try:
                                     await page.wait_for_function(
-                                        f"() => {{ const el = document.querySelector('tr.timeline-row a'); return el && el.innerText.strip() !== '{current_signature}'; }}",
+                                        f"() => {{ const el = document.querySelector({first_row_sel}); return el && el.innerText.strip() !== {sig_json}; }}",
                                         timeout=12000
                                     )
                                 except Exception:

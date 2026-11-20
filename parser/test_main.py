@@ -1,7 +1,13 @@
 import asyncio
 from datetime import datetime, timezone
 from bs4 import BeautifulSoup
-from main import parse_certifications, parse_timeline_page, resolve_user_runtime_limits
+from main import (
+    parse_certifications,
+    parse_timeline_page,
+    resolve_user_runtime_limits,
+    load_selectors,
+    heal_selectors_with_ai,
+)
 
 
 class FakeElement:
@@ -112,3 +118,53 @@ def test_parse_timeline_page_extracts_v9_and_legacy_tasks():
 def test_resolve_user_runtime_limits_enforces_finops_guard():
     assert resolve_user_runtime_limits({"role": "USER"}) == 30
     assert resolve_user_runtime_limits(None) == 30
+
+
+class FakeHttpxResponse:
+    def __init__(self, status_code: int, payload: dict):
+        self.status_code = status_code
+        self._payload = payload
+        self.text = ""
+
+    def json(self):
+        return self._payload
+
+
+class FakeHttpxClient:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
+
+    async def post(self, url, headers=None, json=None):
+        repaired = {
+            "certifications": {"link": "a[href*='/certification/']"},
+            "timeline": {
+                "row": "tr.new-timeline-row",
+                "task_link": "td a[href^='/learn/']",
+                "time": "time",
+                "next_button_item": "li.next-page",
+                "next_button": "button",
+                "first_row_link": "tr.new-timeline-row a",
+            },
+        }
+        return FakeHttpxResponse(
+            200,
+            {"choices": [{"message": {"content": __import__("json").dumps(repaired)}}]},
+        )
+
+
+def test_self_healing_parser_repairs_selectors(monkeypatch):
+    monkeypatch.setattr("main.httpx.AsyncClient", FakeHttpxClient)
+    current = load_selectors()
+    healed = asyncio.run(
+        heal_selectors_with_ai("<table><tr class='new-timeline-row'></tr></table>", current)
+    )
+
+    assert healed is not None
+    assert healed["timeline"]["row"] == "tr.new-timeline-row"
+    assert healed["timeline"]["first_row_link"] == "tr.new-timeline-row a"

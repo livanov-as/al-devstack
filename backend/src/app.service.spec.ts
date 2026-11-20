@@ -43,12 +43,17 @@ describe('AppService', () => {
       notifyTelemetryUpdated: vi.fn(),
     }
 
+    const mockAiService = {
+      enrichTaskMetadata: vi.fn().mockResolvedValue({ tags: ['JS'], difficulty: 3 }),
+    }
+
     appService = new AppService(
       mockCertModel,
       mockProgressModel,
       mockUserModel,
       mockGateway,
       demoTelemetryService,
+      mockAiService as any,
     )
   })
 

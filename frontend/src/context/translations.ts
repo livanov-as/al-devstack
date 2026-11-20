@@ -99,6 +99,20 @@ export interface TranslationKeys {
   adminDeleteTooltip: string
   adminDeleteConfirm: string
   adminSyncDispatchedMsg: string
+  taskDifficultyLabel: string
+  aiBtnHeader: string
+  aiModalTitle: string
+  aiModalSubtitle: string
+  aiDemoBanner: string
+  aiStartBtn: string
+  aiTryLiveBtn: string
+  aiLiveQuotaLabel: string
+  aiAnswerPlaceholder: string
+  aiSubmitAnswerBtn: string
+  aiNextQuestionBadge: string
+  aiScoreLabel: string
+  aiCompletedTitle: string
+  aiRestartBtn: string
 }
 
 // Strictly typed translation registry matching supported language domains
@@ -237,6 +251,23 @@ export const translations: Record<string, TranslationKeys> = {
     adminDeleteTooltip: 'Cascade delete user & all records',
     adminDeleteConfirm: 'Confirm cascade deletion for',
     adminSyncDispatchedMsg: 'GitHub Actions parser workflow dispatched for',
+
+    // AI Enricher & Tech Interviewer
+    taskDifficultyLabel: 'Difficulty',
+    aiBtnHeader: 'AI Interview',
+    aiModalTitle: 'AI Tech Interviewer',
+    aiModalSubtitle:
+      'Adaptive mock interview grounded in your 31-day curriculum',
+    aiDemoBanner: '// SANDBOX PRESET ACTIVE (ZERO-COST RAM SCENARIO)',
+    aiStartBtn: 'Start AI Interview',
+    aiTryLiveBtn: 'Test Live AI',
+    aiLiveQuotaLabel: 'Live quota left',
+    aiAnswerPlaceholder: 'Type your technical explanation here...',
+    aiSubmitAnswerBtn: 'Submit Answer',
+    aiNextQuestionBadge: 'ACTIVE QUESTION',
+    aiScoreLabel: 'Score',
+    aiCompletedTitle: 'Interview Session Completed',
+    aiRestartBtn: 'New Session',
   },
   ru: {
     // Заголовки компонентов
@@ -371,5 +402,22 @@ export const translations: Record<string, TranslationKeys> = {
     adminDeleteTooltip: 'Каскадно удалить пользователя и все его данные',
     adminDeleteConfirm: 'Подтвердить каскадное удаление для',
     adminSyncDispatchedMsg: 'Воркфлоу парсера GitHub Actions запущен для',
+
+    // AI Обогащение и Технический Интервьюер
+    taskDifficultyLabel: 'Сложность',
+    aiBtnHeader: 'AI-Интервью',
+    aiModalTitle: 'AI Технический Интервьюер',
+    aiModalSubtitle:
+      'Адаптивное собеседование по вашим задачам за последние 31 день',
+    aiDemoBanner: '// АКТИВЕН ДЕМО-СЦЕНАРИЙ (БЕЗ ЗАТРАТ ТОКЕНОВ)',
+    aiStartBtn: 'Начать AI-интервью',
+    aiTryLiveBtn: 'Живой ИИ-тест',
+    aiLiveQuotaLabel: 'Живых запросов осталось',
+    aiAnswerPlaceholder: 'Введите ваш технический ответ...',
+    aiSubmitAnswerBtn: 'Отправить ответ',
+    aiNextQuestionBadge: 'ТЕКУЩИЙ ВОПРОС',
+    aiScoreLabel: 'Оценка',
+    aiCompletedTitle: 'Сессия интервью завершена',
+    aiRestartBtn: 'Новая сессия',
   },
 }

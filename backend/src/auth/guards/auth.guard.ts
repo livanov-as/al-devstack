@@ -45,7 +45,7 @@ export class AuthGuard implements CanActivate {
     
     if (payload.role === UserRole.DEMO_USER && isMutationAction) {
       const targetPath = request.url
-      if (!targetPath.includes('progress/cache-flush')) {
+      if (!targetPath.includes('progress/cache-flush') && !targetPath.includes('ai/interview')) {
         this.logger.error(`FinOps Security Triggered: DEMO_USER locked out from executing "${targetHttpMethod}" mutation layout.`)
         throw new ForbiddenException('Action denied: Write operations are locked under DEMO mode parameters')
       }

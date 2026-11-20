@@ -1,0 +1,13 @@
+{
+  "certifications": {
+    "link": "a[href*='/certification/']"
+  },
+  "timeline": {
+    "row": "tr.timeline-row",
+    "task_link": "td a[href^='/learn/']",
+    "time": "time",
+    "next_button_item": "li.timeline-pagination_list_item:has(button[aria-label='Go to next page'])",
+    "next_button": "button",
+    "first_row_link": "tr.timeline-row a"
+  }
+}

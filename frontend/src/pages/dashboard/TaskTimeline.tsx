@@ -11,6 +11,8 @@ interface ITask {
   category: string
   date: string
   url?: string
+  tags?: string[]
+  difficulty?: number
 }
 
 // Backup sample data matching Mongoose schema if the backend is offline
@@ -201,6 +203,25 @@ export default function TaskTimeline() {
                           {formatTime(task.date)}
                         </span>
                       </div>
+                      {((Array.isArray(task.tags) && task.tags.length > 0) ||
+                        typeof task.difficulty === 'number') && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          {Array.isArray(task.tags) &&
+                            task.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded border border-slate-700/70 bg-slate-900/90 px-1.5 py-0.5 font-mono text-[8px] text-slate-400"
+                              >
+                                #{tag}
+                              </span>
+                            ))}
+                          {typeof task.difficulty === 'number' && (
+                            <span className="ml-auto rounded border border-emerald-500/20 bg-emerald-500/5 px-1.5 py-0.5 font-mono text-[8px] font-semibold text-emerald-400">
+                              {t.taskDifficultyLabel}: {task.difficulty}/10
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>,
                 )}

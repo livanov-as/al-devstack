@@ -1,3 +1,4 @@
+import { AiModule } from './ai/ai.module.js';
 import { Module, NestModule, MiddlewareConsumer, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Certificate, CertificateSchema } from './schemas/certificate.schema.js';
@@ -30,6 +31,7 @@ if (!process.env.MONGO_URI) {
 
     // Integrate the dedicated identity authentication sub-system module
     forwardRef(() => AuthModule),
+    forwardRef(() => AiModule),
   ],
   controllers: [AppController],
   providers: [AppService, ProgressGateway, DemoTelemetryService],

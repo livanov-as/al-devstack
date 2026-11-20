@@ -7,6 +7,8 @@ export interface CachedTaskSnapshot {
   category: string
   date: Date
   url: string
+  tags?: string[]
+  difficulty?: number
 }
 
 export interface CachedCertificateSnapshot {
@@ -106,6 +108,8 @@ export class DemoTelemetryService {
     category: 'javascript-v9',
     date: new Date('2025-01-01T00:00:00.000Z'),
     url: `freecodecamp.org/learn/javascript-v9/workshop-envelope-budget-app/step-${step}`,
+    tags: ['JavaScript', 'Arrays', 'State Management'],
+    difficulty: 5,
   }))
 
   /**
@@ -288,6 +292,45 @@ export class DemoTelemetryService {
         clusterStatus: 'HEALTHY (RAM MOCK)',
       },
       users: sandboxUsers,
+    }
+  }
+
+    /**
+   * Returns pre-scripted bilingual (EN/RU) AI interview turns from RAM for zero-cost demo exploration.
+   */
+  getDemoInterviewPreset(
+    lang: 'en' | 'ru',
+    step: 'start' | 'answer',
+    turnNumber = 1,
+  ): {
+    question?: string
+    feedback?: string
+    score?: number
+    isCompleted: boolean
+  } {
+    const isRu = lang === 'ru'
+
+    if (step === 'start') {
+      return {
+        question: isRu
+          ? 'В проекте «Envelope Budget App (JavaScript v9)» вы работали с массивами транзакций и замыканиями. Объясните разницу между Array.prototype.reduce() и обычным циклом for при агрегации баланса, а также как избежать мутации исходного состояния?'
+          : 'In the "Envelope Budget App (JavaScript v9)" workshop, you worked with transaction arrays and closures. Explain the trade-offs between Array.prototype.reduce() and a standard for-loop when aggregating balances, and how you prevent state mutation?',
+        isCompleted: false,
+      }
+    }
+
+    const isLastTurn = turnNumber >= 2
+    return {
+      score: 9,
+      feedback: isRu
+        ? 'Отличный ответ! Вы точно отметили иммутабельность данных (использование spread/map/filter вместо мутирующих методов) и предсказуемость reduce() при работе с чистыми функциями.'
+        : 'Great answer! You accurately highlighted data immutability (using spread/map/filter instead of mutating methods) and the predictability of pure reducer functions.',
+      question: isLastTurn
+        ? undefined
+        : isRu
+          ? 'Финальный вопрос демо-сессии: как бы вы организовали валидацию входящих данных формы бюджета на уровне TypeScript и NestJS, чтобы исключить отрицательные или NaN-транзакции?'
+          : 'Final demo question: how would you enforce strict validation for budget form inputs across TypeScript and a NestJS backend to prevent negative or NaN transactions?',
+      isCompleted: isLastTurn,
     }
   }
 }

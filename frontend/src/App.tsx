@@ -1,3 +1,4 @@
+import AiInterviewerModal from './components/AiInterviewerModal'
 import { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { io } from 'socket.io-client'
@@ -14,7 +15,7 @@ import WorldMap from './pages/dashboard/WorldMap'
 import CertificatesGrid from './pages/dashboard/CertificatesGrid'
 import { IGisData } from './pages/dashboard/hooks/useWorldMap'
 import { API_BASE_URL } from './config'
-import { LogOut, Radio, RotateCcw, Shield } from 'lucide-react'
+import { Bot, LogOut, Radio, RotateCcw, Shield } from 'lucide-react'
 
 const WS_SERVER_URL = import.meta.env.DEV
   ? 'http://localhost:5000'
@@ -68,6 +69,7 @@ function Header() {
   const { logout, user } = useAuth()
   const [isResetOpen, setIsResetOpen] = useState<boolean>(false)
   const [isAdminOpen, setIsAdminOpen] = useState<boolean>(false)
+  const [isAiOpen, setIsAiOpen] = useState<boolean>(false)
 
   const canAccessAdmin =
     user?.role === UserRole.ADMIN || user?.role === UserRole.DEMO_USER
@@ -109,6 +111,15 @@ function Header() {
 
           <button
             type="button"
+            onClick={() => setIsAiOpen(true)}
+            className="flex cursor-pointer items-center gap-1.5 rounded-md border border-sky-500/30 bg-sky-500/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-sky-400 transition-all duration-200 hover:border-sky-400 hover:bg-sky-500/20 active:scale-95"
+          >
+            <Bot className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{t.aiBtnHeader}</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setIsResetOpen(true)}
             className="flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-700 bg-slate-800/90 px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-all duration-200 hover:border-amber-500/50 hover:text-amber-400 active:scale-95"
           >
@@ -134,6 +145,11 @@ function Header() {
           </button>
         </div>
       </header>
+
+      <AiInterviewerModal
+        isOpen={isAiOpen}
+        onClose={() => setIsAiOpen(false)}
+      />
 
       <ResetProgressModal
         isOpen={isResetOpen}
