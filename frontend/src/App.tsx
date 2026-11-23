@@ -1,13 +1,18 @@
-import AiInterviewerModal from './components/AiInterviewerModal'
-import { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react'
+import {
+  Component,
+  ErrorInfo,
+  ReactNode,
+  Suspense,
+  lazy,
+  useEffect,
+  useState,
+} from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { io } from 'socket.io-client'
 import LanguageProvider from './context/LanguageProvider'
 import { AuthProvider, useAuth, UserRole } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import AuthForm from './components/AuthForm'
-import ResetProgressModal from './components/ResetProgressModal'
-import AdminModal from './components/AdminModal'
 import { useLanguage } from './hooks/useLanguage'
 import ActivityCalendar from './pages/dashboard/ActivityCalendar'
 import TaskTimeline from './pages/dashboard/TaskTimeline'
@@ -17,9 +22,13 @@ import { IGisData } from './pages/dashboard/hooks/useWorldMap'
 import { API_BASE_URL } from './config'
 import { Bot, LogOut, Radio, RotateCcw, Shield } from 'lucide-react'
 
+const AiInterviewerModal = lazy(() => import('./components/AiInterviewerModal'))
+const ResetProgressModal = lazy(() => import('./components/ResetProgressModal'))
+const AdminModal = lazy(() => import('./components/AdminModal'))
+
 const WS_SERVER_URL = import.meta.env.DEV
   ? 'http://localhost:5000'
-  : 'https://al-devstack-production.up.railway.app'
+  : 'https://railway.app'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -146,21 +155,28 @@ function Header() {
         </div>
       </header>
 
-      <AiInterviewerModal
-        isOpen={isAiOpen}
-        onClose={() => setIsAiOpen(false)}
-      />
+      <Suspense fallback={null}>
+        {isAiOpen && (
+          <AiInterviewerModal
+            isOpen={isAiOpen}
+            onClose={() => setIsAiOpen(false)}
+          />
+        )}
 
-      <ResetProgressModal
-        isOpen={isResetOpen}
-        onClose={() => setIsResetOpen(false)}
-      />
-      {canAccessAdmin && (
-        <AdminModal
-          isOpen={isAdminOpen}
-          onClose={() => setIsAdminOpen(false)}
-        />
-      )}
+        {isResetOpen && (
+          <ResetProgressModal
+            isOpen={isResetOpen}
+            onClose={() => setIsResetOpen(false)}
+          />
+        )}
+
+        {canAccessAdmin && isAdminOpen && (
+          <AdminModal
+            isOpen={isAdminOpen}
+            onClose={() => setIsAdminOpen(false)}
+          />
+        )}
+      </Suspense>
     </>
   )
 }
@@ -171,7 +187,11 @@ function DashboardContent() {
   const queryClient = useQueryClient()
   const [syncProgress, setSyncProgress] = useState<number>(0)
   const [isCompletingSync, setIsCompletingSync] = useState<boolean>(false)
-  const [isDemoReplayActive, setIsDemoReplayActive] = useState<boolean>(false)
+  const [isDemoReplayActive, setIsDemoReplayActive] = useState<boolean>(
+    () =>
+      user?.role === UserRole.DEMO_USER &&
+      sessionStorage.getItem('al_demo_replay') === '1',
+  )
 
   // Read cached GIS sync state from React Query without issuing duplicate requests
   const { data: gisData } = useQuery<IGisData>({
@@ -189,14 +209,9 @@ function DashboardContent() {
 
   // One-time 4-second sandbox telemetry replay upon entering Demo Mode
   useEffect(() => {
-    if (user?.role !== UserRole.DEMO_USER) return
-
-    const shouldReplay = sessionStorage.getItem('al_demo_replay') === '1'
-    if (!shouldReplay) return
+    if (!isDemoReplayActive) return
 
     sessionStorage.removeItem('al_demo_replay')
-    setIsDemoReplayActive(true)
-    setSyncProgress(0)
 
     const replayDurationMs = 3200
     const holdAtCompleteMs = 800
@@ -226,17 +241,11 @@ function DashboardContent() {
         window.clearTimeout(closeTimeoutId)
       }
     }
-  }, [user?.role])
+  }, [isDemoReplayActive])
 
   // Adaptive role-based progress estimator (ADMIN: ~19 min, USER: ~4 min)
   useEffect(() => {
-    if (isDemoReplayActive) return
-
-    if (!isSyncing) {
-      setSyncProgress(0)
-      setIsCompletingSync(false)
-      return
-    }
+    if (isDemoReplayActive || !isSyncing) return
 
     const expectedDurationMs =
       user?.role === UserRole.ADMIN ? 19 * 60 * 1000 : 4 * 60 * 1000
@@ -251,7 +260,10 @@ function DashboardContent() {
       setSyncProgress((prev) => Math.max(prev, estimatedPercent))
     }, 1000)
 
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearInterval(timer)
+      setSyncProgress(0)
+    }
   }, [isSyncing, isDemoReplayActive, user?.role])
 
   // Subscribe to isolated user WebSocket room using a short-lived signed handshake ticket
