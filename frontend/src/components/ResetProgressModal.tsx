@@ -11,6 +11,7 @@ import {
 import { useAuth, UserRole } from '../context/AuthContext'
 import { useLanguage } from '../hooks/useLanguage'
 import { IGisData } from '../pages/dashboard/hooks/useWorldMap'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { API_BASE_URL } from '../config'
 
 interface ResetProgressModalProps {
@@ -37,6 +38,8 @@ export default function ResetProgressModal({
   const queryClient = useQueryClient()
 
   const isDemo = user?.role === UserRole.DEMO_USER
+
+  useEscapeKey(isOpen, onClose)
 
   const [selectedSector, setSelectedSector] = useState<string>('all')
   const [strictMode, setStrictMode] = useState<boolean>(false)

@@ -10,6 +10,8 @@ export interface TranslationKeys {
   activityCalendarBadge: string
   less: string
   more: string
+  taskSingular: string
+  taskFew: string
   tasks: string
   noTasks: string
   categoryPython: string
@@ -132,6 +134,8 @@ export const translations: Record<string, TranslationKeys> = {
     activityCalendarBadge: '31-Day Strip',
     less: 'Less',
     more: 'More',
+    taskSingular: 'task',
+    taskFew: 'tasks',
     tasks: 'tasks',
     noTasks: 'no tasks',
 
@@ -283,6 +287,8 @@ export const translations: Record<string, TranslationKeys> = {
     activityCalendarBadge: '31 день',
     less: 'Меньше',
     more: 'Больше',
+    taskSingular: 'задача',
+    taskFew: 'задачи',
     tasks: 'задач',
     noTasks: 'нет задач',
 

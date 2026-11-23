@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   X,
@@ -11,8 +11,10 @@ import {
   ShieldAlert,
   CheckCircle2,
   Play,
+  Loader2,
 } from 'lucide-react'
 import { useAuth, UserRole } from '../context/AuthContext'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useLanguage } from '../hooks/useLanguage'
 import { API_BASE_URL } from '../config'
 
@@ -49,13 +51,19 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
 
   const isDemo = user?.role === UserRole.DEMO_USER
 
+  useEscapeKey(isOpen, onClose)
+
   const [isFlushing, setIsFlushing] = useState<boolean>(false)
   const [busyUser, setBusyUser] = useState<string | null>(null)
+  const [syncingUsers, setSyncingUsers] = useState<Record<string, number>>({})
+  const baselineCountsRef = useRef<Record<string, number>>({})
   const [confirmDeleteUser, setConfirmDeleteUser] = useState<string | null>(
     null,
   )
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const hasActiveSyncs = Object.keys(syncingUsers).length > 0
 
   const {
     data: adminData,
@@ -74,7 +82,40 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
       return res.json()
     },
     enabled: isOpen,
+    refetchInterval: isOpen && hasActiveSyncs ? 10000 : false,
   })
+
+  // Clear active sync spinner when taskCount changes or safety timeout expires
+  useEffect(() => {
+    if (!hasActiveSyncs || !adminData?.users) return
+
+    setSyncingUsers((prev) => {
+      let changed = false
+      const next = { ...prev }
+      const now = Date.now()
+
+      for (const [targetName, startedAt] of Object.entries(prev)) {
+        const row = adminData.users.find((u) => u.username === targetName)
+        const baseline = baselineCountsRef.current[targetName]
+        const maxTimeoutMs =
+          row?.role === UserRole.ADMIN ? 20 * 60 * 1000 : 5 * 60 * 1000
+
+        const countChanged =
+          row !== undefined &&
+          baseline !== undefined &&
+          row.taskCount !== baseline
+        const isTimedOut = now - startedAt > maxTimeoutMs
+
+        if (!row || countChanged || isTimedOut) {
+          delete next[targetName]
+          delete baselineCountsRef.current[targetName]
+          changed = true
+        }
+      }
+
+      return changed ? next : prev
+    })
+  }, [adminData, hasActiveSyncs])
 
   useEffect(() => {
     if (isOpen) {
@@ -113,10 +154,15 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
   }
 
   const handleForceSync = async (targetUsername: string) => {
-    if (isDemo || busyUser) return
+    if (isDemo || busyUser || syncingUsers[targetUsername]) return
     setBusyUser(targetUsername)
     setErrorMsg(null)
     setFeedbackMsg(null)
+
+    const currentRow = adminData?.users.find(
+      (u) => u.username === targetUsername,
+    )
+    baselineCountsRef.current[targetUsername] = currentRow?.taskCount ?? 0
 
     try {
       const res = await fetch(
@@ -132,8 +178,13 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
         throw new Error(errData.message || 'Manual sync dispatch failed')
       }
 
+      setSyncingUsers((prev) => ({
+        ...prev,
+        [targetUsername]: Date.now(),
+      }))
       setFeedbackMsg(`${t.adminSyncDispatchedMsg} "${targetUsername}".`)
     } catch (err: any) {
+      delete baselineCountsRef.current[targetUsername]
       setErrorMsg(err.message || 'Failed to dispatch parser sync.')
     } finally {
       setBusyUser(null)
@@ -370,6 +421,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                     {usersList.map((row) => {
                       const isSelf = row.username === user?.username
                       const isRowBusy = busyUser === row.username
+                      const isRowSyncing = Boolean(syncingUsers[row.username])
                       const isConfirming = confirmDeleteUser === row.username
 
                       return (
@@ -406,25 +458,31 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                               {/* Force Sync Button */}
                               <button
                                 type="button"
-                                disabled={isDemo || isRowBusy}
+                                disabled={isDemo || isRowBusy || isRowSyncing}
                                 title={
                                   isDemo
-                                    ? t.sandboxLockedTooltip
+                                    ? `${t.adminSyncTooltip} — ${t.sandboxLockedTooltip}`
                                     : t.adminSyncTooltip
                                 }
                                 onClick={() => handleForceSync(row.username)}
                                 className={`flex items-center gap-1 rounded border px-2 py-1 text-[10px] font-semibold transition-colors ${
                                   isDemo
                                     ? 'cursor-not-allowed border-slate-800 bg-slate-900 text-slate-600'
-                                    : 'cursor-pointer border-sky-500/30 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20'
+                                    : isRowSyncing
+                                      ? 'cursor-wait border-sky-500/40 bg-sky-500/20 text-sky-300'
+                                      : 'cursor-pointer border-sky-500/30 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20'
                                 }`}
                               >
                                 {isDemo ? (
                                   <Lock className="h-3 w-3 text-amber-400/80" />
+                                ) : isRowSyncing ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
                                 ) : (
                                   <Play className="h-3 w-3" />
                                 )}
-                                <span className="hidden sm:inline">Sync</span>
+                                <span className="hidden sm:inline">
+                                  {isRowSyncing ? 'Syncing...' : 'Sync'}
+                                </span>
                               </button>
 
                               {/* Role Toggle Button */}
@@ -433,7 +491,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                 disabled={isDemo || isRowBusy || isSelf}
                                 title={
                                   isDemo
-                                    ? t.sandboxLockedTooltip
+                                    ? `${t.adminRoleToggleTooltip} — ${t.sandboxLockedTooltip}`
                                     : t.adminRoleToggleTooltip
                                 }
                                 onClick={() => handleToggleRole(row)}
@@ -457,7 +515,7 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                 disabled={isDemo || isRowBusy || isSelf}
                                 title={
                                   isDemo
-                                    ? t.sandboxLockedTooltip
+                                    ? `${t.adminDeleteTooltip} — ${t.sandboxLockedTooltip}`
                                     : isConfirming
                                       ? `${t.adminDeleteConfirm} ${row.username}?`
                                       : t.adminDeleteTooltip
@@ -476,11 +534,9 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
                                 ) : (
                                   <Trash2 className="h-3 w-3" />
                                 )}
-                                {isConfirming && (
-                                  <span className="text-[9px] font-bold">
-                                    OK?
-                                  </span>
-                                )}
+                                <span className="hidden sm:inline">
+                                  {isConfirming ? 'OK?' : 'Delete'}
+                                </span>
                               </button>
                             </div>
                           </td>

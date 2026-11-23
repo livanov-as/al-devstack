@@ -1,4 +1,5 @@
 import { X } from 'lucide-react'
+import { useEscapeKey } from '../../../hooks/useEscapeKey'
 
 interface MapLegendProps {
   isOpen: boolean
@@ -13,6 +14,8 @@ export default function MapLegend({
   globalFullStack,
   t,
 }: MapLegendProps) {
+  useEscapeKey(isOpen, () => setIsOpen(false))
+
   if (!isOpen) return null
 
   return (

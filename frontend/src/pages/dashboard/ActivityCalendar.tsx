@@ -10,7 +10,7 @@ interface CalendarDay {
 }
 
 export default function ActivityCalendar() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
 
   // Automatically detect browser timezone to prevent localized date shifting
   const clientTimezone = useMemo(() => {
@@ -67,6 +67,20 @@ export default function ActivityCalendar() {
     return result
   }, [activityMap])
 
+  const formatTaskCount = (count: number): string => {
+    if (count === 0) return t.noTasks
+    if (lang === 'ru') {
+      const mod10 = count % 10
+      const mod100 = count % 100
+      if (mod10 === 1 && mod100 !== 11) return `${count} ${t.taskSingular}`
+      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) {
+        return `${count} ${t.taskFew}`
+      }
+      return `${count} ${t.tasks}`
+    }
+    return `${count} ${count === 1 ? t.taskSingular : t.tasks}`
+  }
+
   // Cyberpunk design system matrix color tiers
   const getColorClass = (count: number): string => {
     if (count === 0) return 'bg-slate-800 border-slate-700/40'
@@ -107,7 +121,7 @@ export default function ActivityCalendar() {
           {calendarDays.map((day) => (
             <div
               key={day.date}
-              title={`${day.date}: ${day.count > 0 ? `${day.count} ${t.tasks}` : t.noTasks}`}
+              title={`${day.date}: ${formatTaskCount(day.count)}`}
               className={`h-3 w-3 cursor-pointer rounded-xs border transition-all duration-150 hover:z-10 hover:scale-125 ${getColorClass(day.count)}`}
             />
           ))}

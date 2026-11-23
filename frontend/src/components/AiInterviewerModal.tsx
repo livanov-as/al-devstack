@@ -10,6 +10,7 @@ import {
   Cpu,
 } from 'lucide-react'
 import { useAuth, UserRole } from '../context/AuthContext'
+import { useEscapeKey } from '../hooks/useEscapeKey'
 import { useLanguage } from '../hooks/useLanguage'
 import { API_BASE_URL } from '../config'
 
@@ -42,6 +43,8 @@ export default function AiInterviewerModal({
   const { t, lang } = useLanguage()
 
   const isDemo = user?.role === UserRole.DEMO_USER
+
+  useEscapeKey(isOpen, onClose)
 
   const [useLiveAi, setUseLiveAi] = useState<boolean>(false)
   const [activeQuestion, setActiveQuestion] = useState<string>('')

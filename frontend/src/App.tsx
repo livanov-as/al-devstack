@@ -187,7 +187,7 @@ function DashboardContent() {
 
   const isSyncing = Boolean(gisData?.isSyncing)
 
-  // One-time 3-second sandbox telemetry replay upon entering Demo Mode
+  // One-time 4-second sandbox telemetry replay upon entering Demo Mode
   useEffect(() => {
     if (user?.role !== UserRole.DEMO_USER) return
 
@@ -198,8 +198,8 @@ function DashboardContent() {
     setIsDemoReplayActive(true)
     setSyncProgress(0)
 
-    const replayDurationMs = 2400
-    const holdAtCompleteMs = 600
+    const replayDurationMs = 3200
+    const holdAtCompleteMs = 800
     const startedAt = Date.now()
     let closeTimeoutId: number | undefined
 
@@ -287,6 +287,9 @@ function DashboardContent() {
             queryClient.invalidateQueries({ queryKey: ['progress-timeline'] })
             queryClient.invalidateQueries({
               queryKey: ['certificates-archive'],
+            })
+            queryClient.invalidateQueries({
+              queryKey: ['admin-users-telemetry'],
             })
             setIsCompletingSync(false)
           }, 600)
