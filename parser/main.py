@@ -223,9 +223,10 @@ async def heal_selectors_with_ai(html_snippet: str, current_selectors: dict) -> 
         "html_snippet": html_snippet[:12000]
     })
 
-    models_to_try = [primary_model]
-    if fallback_model and fallback_model != primary_model:
-        models_to_try.append(fallback_model)
+    candidate_models = [primary_model, fallback_model]
+    if provider == "cloud":
+        candidate_models.append("openrouter/free")
+    models_to_try = list(dict.fromkeys([m for m in candidate_models if m]))
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -363,6 +364,7 @@ async def main(target_username: str = None):
                             if repaired:
                                 selectors = repaired
                                 save_selectors(selectors)
+                                print(f" 📋 Healed selectors JSON: {json.dumps(repaired)}")
                                 print(" ✅ selectors.json healed and persisted. Retrying DOM selector check...")
                                 try:
                                     await page.wait_for_selector(selectors["timeline"]["row"], timeout=8000)
