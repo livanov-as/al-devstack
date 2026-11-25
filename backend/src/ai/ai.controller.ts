@@ -1,5 +1,6 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   Req,
@@ -29,11 +30,39 @@ export class AiController {
   ) {}
 
   private extractClientIp(req: Request): string {
-    const forwarded = req.headers['x-forwarded-for']
-    if (typeof forwarded === 'string' && forwarded.trim()) {
-      return forwarded.split(',')[0].trim()
+    const proxyHeaders = [
+      req.headers['x-vercel-forwarded-for'],
+      req.headers['x-real-ip'],
+      req.headers['x-forwarded-for'],
+    ]
+
+    for (const header of proxyHeaders) {
+      if (typeof header === 'string' && header.trim()) {
+        return header.split(',')[0].trim()
+      }
     }
+
     return req.ip || 'unknown-ip'
+  }
+
+  @Get('interview/quota')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiCookieAuth('al_session')
+  @ApiOperation({ summary: 'Retrieve remaining daily live AI interview quota for DEMO_USER' })
+  getInterviewQuota(@Req() req: Request) {
+    const username = req.user!.username
+    const role = req.user!.role
+
+    if (role !== UserRole.DEMO_USER) {
+      return { remainingLiveQuota: null, maxLiveQuota: null }
+    }
+
+    const clientIp = this.extractClientIp(req)
+    return {
+      remainingLiveQuota: this.aiService.getRemainingDemoQuota(username, clientIp),
+      maxLiveQuota: 2,
+    }
   }
 
   @Post('interview/start')

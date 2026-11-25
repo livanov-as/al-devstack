@@ -115,6 +115,18 @@ export interface TranslationKeys {
   aiScoreLabel: string
   aiCompletedTitle: string
   aiRestartBtn: string
+  aiDemoQ1: string
+  aiDemoF1: string
+  aiDemoQ2: string
+  aiDemoF2: string
+  aiDemoShortHint: string
+  aiPresetCardTitle: string
+  aiPresetCardDesc: string
+  aiLiveCardTitle: string
+  aiLiveCardDesc: string
+  aiInputHint: string
+  aiQuotaExhaustedTitle: string
+  aiQuotaExhaustedBody: string
 }
 
 // Strictly typed translation registry matching supported language domains
@@ -272,6 +284,26 @@ export const translations: Record<string, TranslationKeys> = {
     aiScoreLabel: 'Score',
     aiCompletedTitle: 'Interview Session Completed',
     aiRestartBtn: 'New Session',
+    aiDemoQ1:
+      'In the "Envelope Budget App (JavaScript v9)" workshop, you worked with transaction arrays and closures. Explain the trade-offs between Array.prototype.reduce() and a standard for-loop when aggregating balances, and how you prevent state mutation?',
+    aiDemoF1:
+      'Solid breakdown! reduce() declaratively folds an array into a new value without external mutable variables, whereas a for-loop offers finer control (such as early exit via break). State immutability is preserved via spread, map, or filter.',
+    aiDemoQ2:
+      'Final demo question: how would you enforce strict validation for budget form inputs across TypeScript and a NestJS backend to prevent negative or NaN transactions?',
+    aiDemoF2:
+      'Great validation strategy! On the frontend, enforce strict TypeScript types and Number.isFinite() / > 0 checks, and on the NestJS backend, validate incoming DTO payloads before reaching the service layer.',
+    aiDemoShortHint:
+      'RAM Demo Mode: showing reference review — select "Live AI" for real LLM evaluation.',
+    aiPresetCardTitle: 'Demo Scenario (RAM · Unlimited)',
+    aiPresetCardDesc:
+      'Instant pre-scripted walkthrough based on recent JavaScript v9 tasks with zero token cost.',
+    aiLiveCardTitle: 'Live AI (OpenRouter LLM)',
+    aiLiveCardDesc:
+      'Real-time question generation and grading by LLM (up to 2 live questions per day).',
+    aiInputHint: 'Press Enter to send · Shift + Enter for new line',
+    aiQuotaExhaustedTitle: 'Daily Live AI Quota Reached (2 / 2)',
+    aiQuotaExhaustedBody:
+      'Your daily live LLM allowance for Sandbox Mode is used up and resets tomorrow. You can continue unlimited practice in the RAM Demo Scenario or sign in with a personal account.',
   },
   ru: {
     // Заголовки компонентов
@@ -425,5 +457,25 @@ export const translations: Record<string, TranslationKeys> = {
     aiScoreLabel: 'Оценка',
     aiCompletedTitle: 'Сессия интервью завершена',
     aiRestartBtn: 'Новая сессия',
+    aiDemoQ1:
+      'В проекте «Envelope Budget App (JavaScript v9)» вы работали с массивами транзакций и замыканиями. Объясните разницу между Array.prototype.reduce() и обычным циклом for при агрегации баланса, а также как избежать мутации исходного состояния?',
+    aiDemoF1:
+      'Хороший разбор! reduce() декларативно сворачивает массив в новое значение без внешних мутируемых переменных, тогда как цикл for даёт больше контроля (например, ранний выход через break). Для защиты состояния используем spread, map или filter.',
+    aiDemoQ2:
+      'Финальный вопрос демо-сессии: как бы вы организовали валидацию входящих данных формы бюджета на уровне TypeScript и NestJS, чтобы исключить отрицательные или NaN-транзакции?',
+    aiDemoF2:
+      'Отличный подход к валидации! На фронтенде используем строгие TypeScript-типы и проверку Number.isFinite() / > 0, а на уровне NestJS — DTO с валидацией входных полей до попадания в сервис.',
+    aiDemoShortHint:
+      'Демо-режим RAM: показан эталонный разбор — для реальной проверки ответа нейросетью выберите «Живой ИИ».',
+    aiPresetCardTitle: 'Демо-сценарий (RAM · Безлимитно)',
+    aiPresetCardDesc:
+      'Мгновенный предзаготовленный разбор по недавним задачам JavaScript v9 без расхода токенов.',
+    aiLiveCardTitle: 'Живой ИИ (OpenRouter LLM)',
+    aiLiveCardDesc:
+      'Реальная генерация вопросов и проверка ответа нейросетью (до 2 живых вопросов в день).',
+    aiInputHint: 'Enter — отправить · Shift + Enter — новая строка',
+    aiQuotaExhaustedTitle: 'Дневной лимит живого ИИ исчерпан (2 / 2)',
+    aiQuotaExhaustedBody:
+      'Суточная квота живых запросов в песочнице израсходована и обновится завтра. Вы можете продолжить безлимитно в RAM демо-сценарии или войти под личным аккаунтом.',
   },
 }

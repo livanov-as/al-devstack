@@ -21,6 +21,7 @@ export interface InterviewTurn {
 
 export interface InterviewResponse {
   mode: 'DEMO_PRESET' | 'LIVE_AI'
+  presetTurn?: number
   question?: string
   feedback?: string
   score?: number
@@ -62,9 +63,12 @@ export class AiService {
         )
       }
 
-      const models = fallbackModel && fallbackModel !== primaryModel
-        ? [primaryModel, fallbackModel]
-        : [primaryModel]
+      const candidateModels = [
+        primaryModel,
+        fallbackModel,
+        ...(provider === 'cloud' ? ['openrouter/free'] : []),
+      ].filter(Boolean)
+      const models = Array.from(new Set(candidateModels))
 
       /* eslint-disable no-await-in-loop */
       for (const model of models) {
@@ -140,8 +144,12 @@ export class AiService {
     }
   }
 
+  private getTodayKey(): string {
+    return new Date().toISOString().split('T')[0]
+  }
+
   private checkAndIncrementSessionQuota(username: string, role: UserRole): void {
-    const todayKey = new Date().toISOString().split('T')[0]
+    const todayKey = this.getTodayKey()
     const limit =
       role === UserRole.ADMIN ? this.ADMIN_MAX_DAILY_SESSIONS : this.USER_MAX_DAILY_SESSIONS
 
@@ -162,14 +170,12 @@ export class AiService {
   }
 
   private buildDemoQuotaKey(username: string, clientIp?: string): string {
-    const todayKey = new Date().toISOString().split('T')
     const normalizedIp = (clientIp || 'unknown-ip').trim()
-    return `${todayKey}:${username}:${normalizedIp}`
+    return `${this.getTodayKey()}:${username}:${normalizedIp}`
   }
 
-  private getRemainingDemoQuota(username: string, clientIp?: string): number {
-    const todayKey = new Date().toISOString().split('T')
-    const globalUsed = this.demoLiveCalls.get(`${todayKey}:global-demo`) || 0
+  getRemainingDemoQuota(username: string, clientIp?: string): number {
+    const globalUsed = this.demoLiveCalls.get(`${this.getTodayKey()}:global-demo`) || 0
     if (globalUsed >= this.DEMO_GLOBAL_DAILY_CAP) return 0
 
     const perGuestUsed = this.demoLiveCalls.get(this.buildDemoQuotaKey(username, clientIp)) || 0
@@ -177,8 +183,7 @@ export class AiService {
   }
 
   private consumeDemoLiveCall(username: string, clientIp?: string): number {
-    const todayKey = new Date().toISOString().split('T')
-    const globalKey = `${todayKey}:global-demo`
+    const globalKey = `${this.getTodayKey()}:global-demo`
     const globalUsed = this.demoLiveCalls.get(globalKey) || 0
 
     if (globalUsed >= this.DEMO_GLOBAL_DAILY_CAP) {
@@ -236,7 +241,7 @@ export class AiService {
     clientIp?: string,
   ): Promise<InterviewResponse> {
     if (role === UserRole.DEMO_USER && !useLiveAiInDemo) {
-      const preset = this.demoTelemetryService.getDemoInterviewPreset(lang, 'start')
+      const preset = this.demoTelemetryService.getDemoInterviewPreset('start')
       return {
         mode: 'DEMO_PRESET',
         ...preset,
@@ -281,7 +286,11 @@ export class AiService {
     const maxTurns = role === UserRole.DEMO_USER ? 2 : 3
 
     if (role === UserRole.DEMO_USER && !useLiveAiInDemo) {
-      const preset = this.demoTelemetryService.getDemoInterviewPreset(lang, 'answer', turnNumber)
+      const preset = this.demoTelemetryService.getDemoInterviewPreset(
+        'answer',
+        turnNumber,
+        userAnswer,
+      )
       return {
         mode: 'DEMO_PRESET',
         ...preset,

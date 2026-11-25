@@ -295,41 +295,32 @@ export class DemoTelemetryService {
     }
   }
 
-    /**
-   * Returns pre-scripted bilingual (EN/RU) AI interview turns from RAM for zero-cost demo exploration.
+  /**
+   * Returns lightweight preset step metadata for zero-cost demo exploration.
+   * Localized preset copy is resolved on the frontend via translations.ts.
    */
   getDemoInterviewPreset(
-    lang: 'en' | 'ru',
     step: 'start' | 'answer',
     turnNumber = 1,
+    userAnswer?: string,
   ): {
-    question?: string
-    feedback?: string
+    presetTurn: number
     score?: number
     isCompleted: boolean
   } {
-    const isRu = lang === 'ru'
-
     if (step === 'start') {
       return {
-        question: isRu
-          ? 'В проекте «Envelope Budget App (JavaScript v9)» вы работали с массивами транзакций и замыканиями. Объясните разницу между Array.prototype.reduce() и обычным циклом for при агрегации баланса, а также как избежать мутации исходного состояния?'
-          : 'In the "Envelope Budget App (JavaScript v9)" workshop, you worked with transaction arrays and closures. Explain the trade-offs between Array.prototype.reduce() and a standard for-loop when aggregating balances, and how you prevent state mutation?',
+        presetTurn: 1,
         isCompleted: false,
       }
     }
 
     const isLastTurn = turnNumber >= 2
+    const isShortAnswer = (userAnswer?.trim().length ?? 0) < 15
+
     return {
-      score: 9,
-      feedback: isRu
-        ? 'Отличный ответ! Вы точно отметили иммутабельность данных (использование spread/map/filter вместо мутирующих методов) и предсказуемость reduce() при работе с чистыми функциями.'
-        : 'Great answer! You accurately highlighted data immutability (using spread/map/filter instead of mutating methods) and the predictability of pure reducer functions.',
-      question: isLastTurn
-        ? undefined
-        : isRu
-          ? 'Финальный вопрос демо-сессии: как бы вы организовали валидацию входящих данных формы бюджета на уровне TypeScript и NestJS, чтобы исключить отрицательные или NaN-транзакции?'
-          : 'Final demo question: how would you enforce strict validation for budget form inputs across TypeScript and a NestJS backend to prevent negative or NaN transactions?',
+      presetTurn: turnNumber,
+      score: isShortAnswer ? 6 : 9,
       isCompleted: isLastTurn,
     }
   }
