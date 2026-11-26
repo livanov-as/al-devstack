@@ -95,7 +95,7 @@ function Header() {
             dashboard
           </span>
           {user && (
-            <span className="hidden rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-0.5 font-mono text-[10px] text-emerald-400 md:inline">
+            <span className="hidden rounded-md border border-emerald-500/20 bg-emerald-950/60 px-2 py-0.5 font-mono text-[10px] text-emerald-300 md:inline">
               // {user.username} ({user.role})
             </span>
           )}

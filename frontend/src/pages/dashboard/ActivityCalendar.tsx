@@ -110,7 +110,7 @@ export default function ActivityCalendar() {
           </p>
         </div>
         {/* Compact dashboard timeline footprint indicator */}
-        <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider text-emerald-400 uppercase">
+        <span className="rounded-full border border-emerald-500/30 bg-emerald-950/80 px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider text-emerald-300 uppercase">
           {t.activityCalendarBadge}
         </span>
       </div>

@@ -144,8 +144,8 @@ export default function TaskTimeline() {
         <span
           className={`shrink-0 rounded-full border px-2 py-0.5 font-mono text-[9px] font-bold tracking-wider uppercase ${
             isMocked
-              ? 'border-amber-500/20 bg-amber-500/10 text-amber-400'
-              : 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
+              ? 'border-amber-500/30 bg-amber-950/80 text-amber-300'
+              : 'border-emerald-500/30 bg-emerald-950/80 text-emerald-300'
           }`}
         >
           {isMocked ? 'Demo Mode' : 'Live API'}
