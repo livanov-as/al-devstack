@@ -37,8 +37,8 @@ export class AiService {
   private readonly dailyUserSessions = new Map<string, { dateKey: string; count: number }>()
   private readonly demoLiveCalls = new Map<string, number>()
 
-  private readonly DEMO_MAX_LIVE_CALLS = 2
-  private readonly DEMO_GLOBAL_DAILY_CAP = 16
+  private readonly DEMO_MAX_LIVE_CALLS = 3
+  private readonly DEMO_GLOBAL_DAILY_CAP = 24
   private readonly USER_MAX_DAILY_SESSIONS = 5
   private readonly ADMIN_MAX_DAILY_SESSIONS = 50
 
@@ -179,7 +179,7 @@ export class AiService {
     if (globalUsed >= this.DEMO_GLOBAL_DAILY_CAP) return 0
 
     const perGuestUsed = this.demoLiveCalls.get(this.buildDemoQuotaKey(username, clientIp)) || 0
-    return Math.max(0, this.DEMO_MAX_LIVE_CALLS - perGuestUsed)
+    return Math.min(2, Math.max(0, this.DEMO_MAX_LIVE_CALLS - perGuestUsed))
   }
 
   private consumeDemoLiveCall(username: string, clientIp?: string): number {
@@ -204,7 +204,7 @@ export class AiService {
 
     this.demoLiveCalls.set(globalKey, globalUsed + 1)
     this.demoLiveCalls.set(guestKey, guestUsed + 1)
-    return Math.max(0, this.DEMO_MAX_LIVE_CALLS - (guestUsed + 1))
+    return Math.min(2, Math.max(0, this.DEMO_MAX_LIVE_CALLS - (guestUsed + 1)))
   }
 
   async enrichTaskMetadata(taskName: string, category: string): Promise<TaskEnrichmentResult> {

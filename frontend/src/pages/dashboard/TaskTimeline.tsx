@@ -33,6 +33,14 @@ export default function TaskTimeline() {
   // Integrated TanStack useQuery for chronological live telemetry feeds
   const { data, isLoading } = useQuery<{ tasks: ITask[]; isMocked: boolean }>({
     queryKey: ['progress-timeline'],
+    refetchInterval: (query) => {
+      const current = query.state.data
+      if (!current || current.isMocked) return false
+      const hasUntagged = current.tasks.some(
+        (task) => !Array.isArray(task.tags) || task.tags.length === 0,
+      )
+      return hasUntagged ? 7000 : false
+    },
     queryFn: async () => {
       try {
         const res = await fetch(`${API_BASE_URL}/progress/timeline`, {

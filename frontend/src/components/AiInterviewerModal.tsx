@@ -528,7 +528,9 @@ export default function AiInterviewerModal({
                       {resolvedTurnQuestion}
                     </div>
                     <div className="rounded-lg border border-slate-800 bg-slate-900/80 p-3 text-sm whitespace-pre-wrap text-slate-200">
-                      <span className="font-bold text-sky-400">YOU: </span>
+                      <span className="font-bold text-sky-400">
+                        {t.aiUserLabel}:{' '}
+                      </span>
                       {turn.answer}
                     </div>
                     <div className="space-y-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-sm">
@@ -554,7 +556,8 @@ export default function AiInterviewerModal({
               {!isCompleted && displayedQuestion && (
                 <div className="rounded-xl border border-emerald-500/30 bg-slate-950/60 p-4">
                   <span className="mb-2 inline-block rounded border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold tracking-widest text-emerald-400 uppercase">
-                    {t.aiNextQuestionBadge}
+                    {t.aiNextQuestionBadge} · {history.length + 1} /{' '}
+                    {isDemo ? 2 : 3}
                   </span>
                   <p className="text-sm leading-relaxed text-slate-100">
                     {displayedQuestion}

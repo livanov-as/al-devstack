@@ -112,6 +112,7 @@ export interface TranslationKeys {
   aiAnswerPlaceholder: string
   aiSubmitAnswerBtn: string
   aiNextQuestionBadge: string
+  aiUserLabel: string
   aiScoreLabel: string
   aiCompletedTitle: string
   aiRestartBtn: string
@@ -281,6 +282,7 @@ export const translations: Record<string, TranslationKeys> = {
     aiAnswerPlaceholder: 'Type your technical explanation here...',
     aiSubmitAnswerBtn: 'Submit Answer',
     aiNextQuestionBadge: 'ACTIVE QUESTION',
+    aiUserLabel: 'YOU',
     aiScoreLabel: 'Score',
     aiCompletedTitle: 'Interview Session Completed',
     aiRestartBtn: 'New Session',
@@ -454,6 +456,7 @@ export const translations: Record<string, TranslationKeys> = {
     aiAnswerPlaceholder: 'Введите ваш технический ответ...',
     aiSubmitAnswerBtn: 'Отправить ответ',
     aiNextQuestionBadge: 'ТЕКУЩИЙ ВОПРОС',
+    aiUserLabel: 'ВЫ',
     aiScoreLabel: 'Оценка',
     aiCompletedTitle: 'Сессия интервью завершена',
     aiRestartBtn: 'Новая сессия',

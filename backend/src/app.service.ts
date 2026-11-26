@@ -25,6 +25,7 @@ import { AiService } from './ai/ai.service.js'
 export class AppService implements OnModuleInit {
   private readonly logger = new Logger(AppService.name)
   private geoStatsCache: Record<string, any> = {}
+  private readonly enrichingTaskIds = new Set<string>()
 
   constructor(
     @InjectModel(Certificate.name)
@@ -112,13 +113,21 @@ export class AppService implements OnModuleInit {
    */
   private enrichUnprocessedTasksInBackground(tasks: any[]): void {
     const unenriched = tasks
-      .filter((t) => t && t._id && (!Array.isArray(t.tags) || t.tags.length === 0))
+      .filter(
+        (t) =>
+          t &&
+          t._id &&
+          !this.enrichingTaskIds.has(String(t._id)) &&
+          (!Array.isArray(t.tags) || t.tags.length === 0),
+      )
       .slice(0, 3)
 
     if (unenriched.length === 0) return
 
     void Promise.allSettled(
       unenriched.map(async (task) => {
+        const taskId = String(task._id)
+        this.enrichingTaskIds.add(taskId)
         try {
           const enriched = await this.aiService.enrichTaskMetadata(
             task.task_name,
@@ -132,6 +141,8 @@ export class AppService implements OnModuleInit {
           this.logger.warn(
             `Background AI task enrichment skipped for "${task.task_name}": ${(err as Error).message}`,
           )
+        } finally {
+          this.enrichingTaskIds.delete(taskId)
         }
       }),
     )
