@@ -64,7 +64,7 @@ export default function CertificatesGrid() {
           {/* Active Full-Stack Architecture Block (v9 Curriculum) */}
           {activeCerts.length > 0 && (
             <div>
-              <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-emerald-500/70 uppercase">
+              <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-emerald-400 uppercase">
                 {t.certActiveArchitecture}
               </span>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
