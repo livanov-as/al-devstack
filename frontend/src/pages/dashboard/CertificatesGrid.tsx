@@ -54,7 +54,7 @@ export default function CertificatesGrid() {
       {certs.length === 0 ? (
         // Absolute absolute mathematical vertical and horizontal centering inside remaining space
         <div className="flex w-full flex-1 items-center justify-center pb-2">
-          <p className="text-center font-mono text-xs tracking-wide text-slate-500 italic">
+          <p className="text-center font-mono text-xs tracking-wide text-slate-400 italic">
             {t.noCertificates}
           </p>
         </div>
@@ -84,7 +84,7 @@ export default function CertificatesGrid() {
                       <div className="truncate font-mono text-xs font-semibold text-slate-200 transition-colors group-hover:text-emerald-400">
                         {cert.title}
                       </div>
-                      <div className="mt-0.5 truncate font-mono text-[9px] tracking-tight text-slate-500 uppercase">
+                      <div className="mt-0.5 truncate font-mono text-[9px] tracking-tight text-slate-400 uppercase">
                         {cert.slug}
                       </div>
                     </div>
@@ -98,7 +98,7 @@ export default function CertificatesGrid() {
           {/* Transferred Infrastructure Block (Legacy Curriculum) */}
           {legacyCerts.length > 0 && (
             <div className="border-t border-slate-900 pt-3">
-              <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-slate-500 uppercase">
+              <span className="mb-2 block font-mono text-[9px] font-bold tracking-widest text-slate-400 uppercase">
                 {t.certLegacyInfrastructure}
               </span>
               <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
@@ -118,7 +118,7 @@ export default function CertificatesGrid() {
                       <div className="truncate font-mono text-xs font-medium text-slate-400 transition-colors group-hover:text-slate-300">
                         {cert.title}
                       </div>
-                      <div className="mt-0.5 truncate font-mono text-[9px] tracking-tight text-slate-600 uppercase">
+                      <div className="mt-0.5 truncate font-mono text-[9px] tracking-tight text-slate-400 uppercase">
                         {cert.slug}
                       </div>
                     </div>

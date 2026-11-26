@@ -58,8 +58,9 @@ export default function AuthForm() {
         {/* Language Controller Trigger */}
         <button
           type="button"
+          aria-label={t.switchLangAria}
           onClick={() => setLang(lang === 'en' ? 'ru' : 'en')}
-          className="absolute top-4 right-4 cursor-pointer rounded border border-slate-800 bg-slate-950/40 px-2 py-1 text-[10px] font-bold text-slate-400 transition-all hover:border-emerald-500/40 hover:text-emerald-400"
+          className="absolute top-4 right-4 cursor-pointer rounded border border-slate-800 bg-slate-950/40 px-2 py-1 text-[10px] font-bold text-slate-300 transition-all hover:border-emerald-500/40 hover:text-emerald-400"
         >
           {lang.toUpperCase()}
         </button>
@@ -71,7 +72,7 @@ export default function AuthForm() {
           <h2 className="mt-3 text-lg font-black tracking-wider text-slate-200 uppercase">
             {t.authTitle}
           </h2>
-          <p className="mt-1 text-[11px] tracking-tight text-slate-500 uppercase">
+          <p className="mt-1 text-[11px] tracking-tight text-slate-400 uppercase">
             {t.authSubtitle}
           </p>
         </div>
@@ -168,7 +169,7 @@ export default function AuthForm() {
 
         {/* Dedicated Recruiter Isolation Boundary Section */}
         <div className="mt-5 border-t border-slate-800/80 pt-5">
-          <div className="mb-4 flex items-center justify-between gap-3 text-[10px] tracking-widest text-slate-600 uppercase">
+          <div className="mb-4 flex items-center justify-between gap-3 text-[10px] tracking-widest text-slate-400 uppercase">
             <div className="h-px flex-1 bg-slate-800/40" />
             <span>{t.authDividerOr}</span>
             <div className="h-px flex-1 bg-slate-800/40" />

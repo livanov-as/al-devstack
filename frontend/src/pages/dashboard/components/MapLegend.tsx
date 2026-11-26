@@ -26,8 +26,10 @@ export default function MapLegend({
             {t.mapLegendTitle}
           </h4>
           <button
+            type="button"
+            aria-label={t.closeModalAria}
             onClick={() => setIsOpen(false)}
-            className="cursor-pointer text-slate-500 hover:text-slate-300"
+            className="cursor-pointer text-slate-400 hover:text-slate-200"
           >
             <X className="h-4 w-4" />
           </button>

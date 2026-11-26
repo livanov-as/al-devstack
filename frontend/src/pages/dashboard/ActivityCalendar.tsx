@@ -129,7 +129,7 @@ export default function ActivityCalendar() {
       </div>
 
       {/* Cyberpunk synchronization status matrix legend footprint */}
-      <div className="mt-4 flex items-center justify-end gap-1.5 font-mono text-[10px] text-slate-500">
+      <div className="mt-4 flex items-center justify-end gap-1.5 font-mono text-[10px] text-slate-400">
         <span>{t.less}</span>
         <div className="h-2.5 w-2.5 rounded-xs border border-slate-700/50 bg-slate-800" />
         <div className="h-2.5 w-2.5 rounded-xs bg-emerald-900" />

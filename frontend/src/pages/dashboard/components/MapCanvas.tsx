@@ -76,11 +76,15 @@ export default function MapCanvas({
               const regionStats = regions[regionId]
               const percentage = regionStats ? regionStats.percentage : 0
               const geoColor = colorScale(percentage)
+              const ariaLabel = regionStats
+                ? `${regionStats.name} — ${percentage}%`
+                : continentName || 'World region'
 
               return (
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
+                  aria-label={ariaLabel}
                   onMouseEnter={(e: any) =>
                     regionId && handleRegionTrigger(regionId, e)
                   }
@@ -94,7 +98,7 @@ export default function MapCanvas({
                   onBlur={handleRegionLeave}
                   onKeyDown={(e: any) => regionId && handleKeyDown(regionId, e)}
                   tabIndex={regionId ? 0 : -1}
-                  role="button"
+                  role={regionId ? 'button' : undefined}
                   className="focus:outline-none focus-visible:drop-shadow-[0_0_8px_rgba(16,185,129,0.6)] focus-visible:filter"
                   style={{
                     default: {
@@ -126,6 +130,7 @@ export default function MapCanvas({
 
         <path
           d="M 170,290 C 175,285 185,285 190,292 C 195,298 188,308 180,305 C 172,302 165,295 170,290 Z"
+          aria-label={`Full-Stack Secret Island (${trackingMetrics.earned}/7)`}
           style={{
             fill: globalFullStack ? '#34d399' : '#10b981',
             stroke: globalFullStack ? '#6ee7b7' : '#047857',

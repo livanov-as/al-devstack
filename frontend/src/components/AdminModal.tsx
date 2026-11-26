@@ -295,8 +295,9 @@ export default function AdminModal({ isOpen, onClose }: AdminModalProps) {
           </div>
           <button
             type="button"
+            aria-label={t.closeModalAria}
             onClick={onClose}
-            className="cursor-pointer rounded-md p-1 text-slate-500 transition-colors hover:text-slate-300"
+            className="cursor-pointer rounded-md p-1 text-slate-400 transition-colors hover:text-slate-200"
           >
             <X className="h-4 w-4" />
           </button>

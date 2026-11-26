@@ -61,6 +61,8 @@ export interface TranslationKeys {
   authToggleRegister: string
   authToggleLogin: string
   logoutTooltip: string
+  switchLangAria: string
+  closeModalAria: string
   authSessionExpired: string
   syncingTitle: string
   syncingSubtitle: string
@@ -216,6 +218,8 @@ export const translations: Record<string, TranslationKeys> = {
     authToggleRegister: "Don't have an active cluster profile? Provision here",
     authToggleLogin: 'Already authorized in active cluster? Mount profile',
     logoutTooltip: 'Terminate active telemetry session',
+    switchLangAria: 'Switch language to Russian',
+    closeModalAria: 'Close modal',
     authSessionExpired: 'Session expired. Telemetry authentication required.',
 
     // Live Telemetry Synchronization Overlay
@@ -390,6 +394,8 @@ export const translations: Record<string, TranslationKeys> = {
     authToggleRegister: 'Нет активного профиля в кластере? Создать здесь',
     authToggleLogin: 'Профиль уже создан? Подключить сессию',
     logoutTooltip: 'Завершить активную сессию телеметрии',
+    switchLangAria: 'Переключить язык на английский',
+    closeModalAria: 'Закрыть окно',
     authSessionExpired:
       'Время сессии истекло. Требуется повторная авторизация телеметрии.',
 

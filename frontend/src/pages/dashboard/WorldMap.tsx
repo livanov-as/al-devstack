@@ -1,8 +1,10 @@
+import { lazy, Suspense } from 'react'
 import { Globe, ShieldAlert, Radio, HelpCircle } from 'lucide-react'
 import { useWorldMap } from './hooks/useWorldMap'
-import MapCanvas from './components/MapCanvas'
 import MapTooltip from './components/MapTooltip'
 import MapLegend from './components/MapLegend'
+
+const MapCanvas = lazy(() => import('./components/MapCanvas'))
 
 export default function WorldMap() {
   const {
@@ -58,8 +60,10 @@ export default function WorldMap() {
         </h3>
         <div className="flex items-center gap-3">
           <button
+            type="button"
+            aria-label={t.mapLegendTitle}
             onClick={() => setIsLegendOpen(true)}
-            className="cursor-pointer text-slate-500 transition-colors hover:text-emerald-400"
+            className="cursor-pointer text-slate-400 transition-colors hover:text-emerald-400"
           >
             <HelpCircle className="h-4 w-4" />
           </button>
@@ -70,13 +74,19 @@ export default function WorldMap() {
       </div>
 
       <div className="relative flex aspect-800/380 min-h-45 w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-slate-800/50 bg-slate-950/20 sm:aspect-auto">
-        <MapCanvas
-          gisData={gisData}
-          trackingMetrics={trackingMetrics}
-          handleRegionTrigger={handleRegionTrigger}
-          handleRegionLeave={handleRegionLeave}
-          handleKeyDown={handleKeyDown}
-        />
+        <Suspense
+          fallback={
+            <Radio className="h-5 w-5 animate-pulse text-emerald-500/60" />
+          }
+        >
+          <MapCanvas
+            gisData={gisData}
+            trackingMetrics={trackingMetrics}
+            handleRegionTrigger={handleRegionTrigger}
+            handleRegionLeave={handleRegionLeave}
+            handleKeyDown={handleKeyDown}
+          />
+        </Suspense>
 
         <MapTooltip
           tooltip={tooltip}

@@ -207,7 +207,7 @@ export default function TaskTimeline() {
                         >
                           {label}
                         </span>
-                        <span className="font-mono text-slate-500 transition-colors group-hover:text-slate-400">
+                        <span className="font-mono text-slate-400 transition-colors group-hover:text-slate-300">
                           {formatTime(task.date)}
                         </span>
                       </div>

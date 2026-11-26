@@ -28,7 +28,7 @@ const AdminModal = lazy(() => import('./components/AdminModal'))
 
 const WS_SERVER_URL = import.meta.env.DEV
   ? 'http://localhost:5000'
-  : 'https://railway.app'
+  : 'https://al-devstack-production.up.railway.app'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -138,6 +138,7 @@ function Header() {
 
           <button
             type="button"
+            aria-label={t.switchLangAria}
             onClick={() => setLang(lang === 'en' ? 'ru' : 'en')}
             className="cursor-pointer rounded-md border border-slate-700 bg-slate-800 px-3 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-all duration-200 hover:border-emerald-500/50 hover:text-emerald-400 active:scale-95"
           >
@@ -148,6 +149,7 @@ function Header() {
             type="button"
             onClick={() => logout()}
             title={t.logoutTooltip}
+            aria-label={t.logoutTooltip}
             className="flex cursor-pointer items-center justify-center rounded-md border border-slate-700 bg-slate-800 p-1.5 text-slate-400 transition-all duration-200 hover:border-rose-500/50 hover:text-rose-400 active:scale-95"
           >
             <LogOut className="h-4 w-4" />
@@ -306,8 +308,8 @@ function DashboardContent() {
             setIsCompletingSync(false)
           }, 600)
         })
-      } catch (err) {
-        console.warn('WebSocket handshake ticket initialization skipped:', err)
+      } catch {
+        // Silent fallback when WebSocket handshake is unavailable
       }
     }
 

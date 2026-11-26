@@ -43,6 +43,20 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 600,
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes('node_modules/d3-') ||
+            id.includes('node_modules/topojson-client') ||
+            id.includes('node_modules/@vnedyalk0v/react19-simple-maps')
+          ) {
+            return 'vendor-geo'
+          }
+        },
+      },
+    },
   },
   server: {
     proxy: {
