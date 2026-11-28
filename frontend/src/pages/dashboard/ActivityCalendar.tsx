@@ -122,7 +122,7 @@ export default function ActivityCalendar() {
             <div
               key={day.date}
               title={`${day.date}: ${formatTaskCount(day.count)}`}
-              className={`h-3 w-3 cursor-pointer rounded-xs border transition-all duration-150 hover:z-10 hover:scale-125 ${getColorClass(day.count)}`}
+              className={`h-3 w-3 cursor-pointer rounded-xs border transition-transform duration-150 hover:z-10 hover:scale-125 ${getColorClass(day.count)}`}
             />
           ))}
         </div>

@@ -10,6 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      injectRegister: 'script-defer',
       includeAssets: ['favicon.svg', 'og-banner.webp'],
       manifest: {
         name: 'al-devstack // Full-Stack GIS Telemetry',
@@ -43,7 +44,7 @@ export default defineConfig({
   ],
   build: {
     chunkSizeWarningLimit: 600,
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks(id) {
